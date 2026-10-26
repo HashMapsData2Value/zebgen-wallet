@@ -7,6 +7,53 @@ import * as react from 'react';
 import * as jsx from 'react/jsx-runtime';
 import * as scanHeight from '../lib/monero/scanHeight.ts';
 
+test('zero spendable does not hide confirmed locked change or imply a zero total', () => {
+  const values = [
+    '0', '17500', false, null, null, 17563, 17563, false, null, false,
+    '17500', '399000000000', [], [{ height: 17573, amountAtomic: '399000000000' }], 17563,
+  ];
+  const compiled = ts.transpileModule(
+    readFileSync(new URL('../entrypoints/popup/MoneroBalance.tsx', import.meta.url), 'utf8'),
+    { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } },
+  ).outputText;
+  const api = {};
+  runInNewContext(compiled, {
+    exports: api,
+    require(name) {
+      if (name === 'react') return {
+        useState: () => [values.shift(), () => {}],
+        useRef: (initial) => ({ current: initial }),
+        useEffect: () => {},
+      };
+      if (name === 'react/jsx-runtime') return jsx;
+      if (name.endsWith('/moneroBalanceCache')) return {
+        coverageCheckpointKey: () => 'coverage',
+        balanceCheckpointKey: () => 'checkpoint',
+        unscannedSpans: () => [],
+      };
+      if (name.endsWith('/formatAtomic')) return {
+        formatAtomic: (value) => String(Number(value) / 1e12),
+      };
+      return {};
+    },
+  });
+  const tree = api.default({
+    address: 'fixture', walletId: 1, lockSecret: 'fixture', restoreHeight: 17500,
+    config: { network: 'stagenet', daemon: { uri: 'https://daemon.invalid' } },
+  });
+  function text(element) {
+    if (element === null || element === undefined || typeof element === 'boolean') return '';
+    if (typeof element !== 'object') return String(element);
+    return react.Children.toArray(element.props.children).map(text).join('');
+  }
+  const content = text(tree);
+  assert.match(content, /Spendable 0 XMR/);
+  assert.match(content, /Confirmed total: 0\.399 XMR/);
+  assert.match(content, /Locked: 0\.399 XMR/);
+  assert.match(content, /10 blocks remaining/);
+  assert.equal(content.match(/Locked:/g).length, 1);
+});
+
 test('Monero polls every five seconds, scans only changed heights, and keeps manual refresh', async () => {
   const effects = [];
   const timers = [];

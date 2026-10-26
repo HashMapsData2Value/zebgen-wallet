@@ -65,6 +65,9 @@ export default function MoneroBalance(props: MoneroBalanceProps) {
     Number(appliedHeight),
   );
   const missing = unscannedSpans(spans, targetHeight ?? spans.at(-1)?.end ?? 0);
+  const total = balance !== null && locked !== null
+    ? (BigInt(balance) + BigInt(locked)).toString()
+    : null;
   function missingBlockCount(coverage: ScanSpan[], tip: number) {
     return unscannedSpans(coverage, tip).reduce(
       (count, span) => count + Math.max(0, span.end - Math.max(span.start, Number(appliedHeight))),
@@ -298,6 +301,7 @@ export default function MoneroBalance(props: MoneroBalanceProps) {
           </button>
         ) : null}
       </div>
+      {total !== null ? <p className="hint">Confirmed total: {formatAtomic(total, 12)} XMR</p> : null}
       <p className="hint" aria-label="Locked Monero balance">
         Locked: {locked === null ? 'Not checked' : `${formatAtomic(locked, 12)} XMR`}
       </p>
@@ -344,7 +348,9 @@ export default function MoneroBalance(props: MoneroBalanceProps) {
       )}
       <p className="hint">
         Locked funds unlock as blocks are mined, not after a fixed time. Incoming mempool payments
-        are not shown.
+        and change from outgoing transactions are not shown until confirmed. A send can
+        temporarily reduce the confirmed balance to zero while its change is pending;
+        confirmed change is locked until its unlock block.
       </p>
       <div className="scan-coverage" aria-label="Monero scan coverage">
         <h4>Scanned block spans</h4>

@@ -1104,6 +1104,14 @@ function App({ variant = 'popup' }: AppProps) {
               onChange={updateNetworkSettings}
             />
           ) : null}
+          <h2>Monero network settings</h2>
+          {networkSettings ? (
+            <NetworkSettingsPanel
+              chain="monero"
+              settings={networkSettings}
+              onChange={updateNetworkSettings}
+            />
+          ) : null}
           <RevealSeedPhrase />
         </section>
       ) : null}
