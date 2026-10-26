@@ -1,3 +1,10 @@
+## [0.0.1-beta.2](https://github.com/HashMapsData2Value/zebgen-wallet/compare/v0.0.1-beta.1...v0.0.1-beta.2) (2026-10-26)
+
+
+### Bug Fixes
+
+* **release:** preserve beta labels in Firefox archive names ([d37f89c](https://github.com/HashMapsData2Value/zebgen-wallet/commit/d37f89c6f914d799fd41f15a32895388e229baf0))
+
 ## [0.0.1-beta.1](https://github.com/HashMapsData2Value/zebgen-wallet/compare/v0.0.0...v0.0.1-beta.1) (2026-10-26)
 
 
