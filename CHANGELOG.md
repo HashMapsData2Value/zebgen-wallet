@@ -1,3 +1,10 @@
+## [0.0.1-beta.3](https://github.com/HashMapsData2Value/zebgen-wallet/compare/v0.0.1-beta.2...v0.0.1-beta.3) (2026-10-26)
+
+
+### Bug Fixes
+
+* **wallet:** expose Monero network settings and clarify locked balances ([4ba9c57](https://github.com/HashMapsData2Value/zebgen-wallet/commit/4ba9c57ef7253e50951c873d659306898c06cefb))
+
 ## [0.0.1-beta.2](https://github.com/HashMapsData2Value/zebgen-wallet/compare/v0.0.1-beta.1...v0.0.1-beta.2) (2026-10-26)
 
 
