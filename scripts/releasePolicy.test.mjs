@@ -30,6 +30,11 @@ test('pre-1.0 breaking changes produce minor rather than major releases', async 
   }
 });
 
+test('browser archive names preserve the package beta suffix', async () => {
+  const source = await readFile(new URL('../wxt.config.ts', import.meta.url), 'utf8');
+  assert.match(source, /artifactTemplate: `zebgen-\$\{packageJson.version\}-\{\{browser\}\}.zip`/);
+});
+
 test('landing page source and downloads use zebgen-wallet', async () => {
   const html = await readFile(new URL('../site/index.html', import.meta.url), 'utf8');
   const script = await readFile(new URL('../site/main.js', import.meta.url), 'utf8');

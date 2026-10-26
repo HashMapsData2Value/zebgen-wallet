@@ -1,12 +1,13 @@
 import { defineConfig } from 'wxt';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import { resolve } from 'node:path';
+import packageJson from './package.json';
 
 // See https://wxt.dev/api/config.html
 export default defineConfig({
   outDir: process.env.ZEBGEN_BUILD_OUT_DIR ?? '.output',
   zip: {
-    artifactTemplate: 'zebgen-{{version}}-{{browser}}.zip',
+    artifactTemplate: `zebgen-${packageJson.version}-{{browser}}.zip`,
   },
   modules: ['@wxt-dev/module-react'],
   manifest: ({ manifestVersion }) => ({
