@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  push:
+    branches: [main, Release]
+    paths-ignore:
+      - 'docs/**'
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - run: npm ci
+      - run: npm run compile
+      - run: npm test
+      - name: Check release channels and landing page links
+        run: node --test scripts/releasePolicy.test.mjs scripts/site.test.mjs
+      - name: Check Monero balances and scan coverage
+        run: node --experimental-transform-types --no-warnings --test scripts/balancePolling.test.mjs scripts/balanceBatchIntegration.test.mjs scripts/moneroBalanceCache.test.mjs
+      - name: Check invitation funding approval feedback
+        run: node --experimental-transform-types --no-warnings --test scripts/scanApprovalProgress.test.mjs scripts/swapAffordability.test.mjs
+      - name: Check Chrome and Firefox scan sender contracts
+        run: node --experimental-transform-types --no-warnings --test scripts/scanHostStatus.test.mjs scripts/scanTabSecurity.test.mjs scripts/balanceScanBridge.test.mjs
+      - uses: browser-actions/setup-firefox@v1
+        id: firefox
+      - name: Test real Firefox scan runtime
+        run: npm run test:firefox
+        env:
+          FIREFOX_BINARY: ${{ steps.firefox.outputs.firefox-path }}
+      - run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

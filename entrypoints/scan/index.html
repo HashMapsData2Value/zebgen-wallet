@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Scanning Monero Blocks... | Zebgen</title>
+  </head>
+  <body>
+    <header class="brand">
+      <img src="../../assets/brand/zebgen-mark-128.png" width="40" height="40" alt="" />
+      <span>zebgen<span class="brand-dot">.</span></span>
+    </header>
+    <main>
+      <p class="eyebrow">Monero wallet</p>
+      <h1>Scanning Monero Blocks...</h1>
+      <p class="description">
+        Keep this tab open while the extension scans the blocks. This tab keeps the scan running in
+        the background, even when you close the wallet popup.
+      </p>
+      <div class="scan-state">
+        <p id="status" role="status">Waiting for scan...</p>
+        <button id="stop" type="button">Stop scan</button>
+      </div>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

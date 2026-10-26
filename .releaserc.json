@@ -1,0 +1,58 @@
+{
+  "branches": ["Release", { "name": "main", "prerelease": "beta", "channel": "beta" }],
+  "tagFormat": "v${version}",
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "releaseRules": [
+          { "breaking": true, "release": "minor" },
+          {
+            "type": "docs",
+            "release": false
+          },
+          {
+            "scope": "docs",
+            "release": false
+          }
+        ]
+      }
+    ],
+    "@semantic-release/release-notes-generator",
+    "@semantic-release/changelog",
+    [
+      "@semantic-release/npm",
+      {
+        "npmPublish": false
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "npm run build && npm run zip && npm run build:firefox && npm run zip:firefox"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          {
+            "path": ".output/*-chrome.zip",
+            "label": "Chrome/Chromium build (load unpacked via developer mode)"
+          },
+          {
+            "path": ".output/*-firefox.zip",
+            "label": "Firefox build (load via about:debugging)"
+          }
+        ]
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["package.json", "package-lock.json", "CHANGELOG.md"],
+        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ]
+  ]
+}

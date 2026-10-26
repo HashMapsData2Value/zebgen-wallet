@@ -1,0 +1,46 @@
+.deposit-progress {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  background: rgb(128 128 128 / 10%);
+}
+
+.deposit-progress > div {
+  min-width: 0;
+}
+
+.deposit-progress h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.deposit-progress p {
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.deposit-progress-time {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.deposit-progress-spinner {
+  flex: 0 0 32px;
+  animation: deposit-spin 1s linear infinite;
+}
+
+@keyframes deposit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deposit-progress-spinner {
+    animation: none;
+  }
+}
