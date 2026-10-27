@@ -1,3 +1,10 @@
+## [0.0.1-beta.4](https://github.com/HashMapsData2Value/zebgen-wallet/compare/v0.0.1-beta.3...v0.0.1-beta.4) (2026-10-27)
+
+
+### Bug Fixes
+
+* **network:** default fresh wallets to Monero Stagenet ([df30bed](https://github.com/HashMapsData2Value/zebgen-wallet/commit/df30bed50b73a4e8a3e527963cec909e37221ba8))
+
 ## [0.0.1-beta.3](https://github.com/HashMapsData2Value/zebgen-wallet/compare/v0.0.1-beta.2...v0.0.1-beta.3) (2026-10-26)
 
 
