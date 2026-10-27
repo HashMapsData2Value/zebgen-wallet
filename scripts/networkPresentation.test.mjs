@@ -22,7 +22,7 @@ runInNewContext(compiled, {
 });
 const { ALGORAND_NETWORK_IDS, MONERO_NETWORK_IDS, networkColor } = api;
 
-test('fresh profiles default to Algorand Testnet without replacing saved networks', async () => {
+test('fresh profiles default to Algorand Testnet and Monero Stagenet without replacing saved networks', async () => {
   let saved;
   const store = {};
   const storeSource = readFileSync(
@@ -47,18 +47,22 @@ test('fresh profiles default to Algorand Testnet without replacing saved network
   assert.equal(fresh.algorand.network, 'testnet');
   assert.equal(fresh.algorand.algod.server, 'https://testnet-api.algonode.cloud');
   assert.equal(fresh.algorand.indexer.server, 'https://testnet-idx.algonode.cloud');
-  assert.equal(fresh.monero.network, 'mainnet');
+  assert.equal(fresh.monero.network, 'stagenet');
+  assert.equal(fresh.monero.networkType, 2);
+  assert.equal(fresh.monero.daemon.uri, 'https://xmr.nodely.dev:38089');
   fresh.algorand.algod.server = 'modified';
   assert.equal(
     (await store.getNetworkSettings()).algorand.algod.server,
     'https://testnet-api.algonode.cloud',
   );
   for (const network of ['localnet', 'mainnet', 'testnet']) {
-    saved = {
-      algorand: api.cloneAlgorandPreset(network),
-      monero: api.cloneMoneroPreset('stagenet'),
-    };
-    assert.equal(await store.getNetworkSettings(), saved);
+    for (const monero of ['mainnet', 'stagenet', 'regtest']) {
+      saved = {
+        algorand: api.cloneAlgorandPreset(network),
+        monero: api.cloneMoneroPreset(monero),
+      };
+      assert.equal(await store.getNetworkSettings(), saved);
+    }
   }
 });
 

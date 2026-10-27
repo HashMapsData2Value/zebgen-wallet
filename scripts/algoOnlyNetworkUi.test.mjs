@@ -41,6 +41,9 @@ test('Algo-only wallet can select and persist Stagenet without creating a Monero
     await page.getByRole('button', { name: 'Encrypt and Save', exact: true }).click();
     await page.locator('p.address[title]').waitFor();
     await settings(page);
+    await assertNetworks(page, 'stagenet');
+    await page.getByRole('group', { name: 'Monero network', exact: true })
+      .getByRole('button', { name: /^mainnet$/i }).click();
     await assertNetworks(page, 'mainnet');
     await page.getByRole('group', { name: 'Monero network', exact: true })
       .getByRole('button', { name: /^stagenet$/i }).click();

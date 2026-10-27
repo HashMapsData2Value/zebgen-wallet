@@ -112,7 +112,7 @@ export const MONERO_PRESETS: Record<MoneroNetworkId, MoneroNetworkConfig> = {
 
 export const DEFAULT_NETWORK_SETTINGS: NetworkSettings = {
   algorand: ALGORAND_PRESETS.testnet,
-  monero: MONERO_PRESETS.mainnet,
+  monero: MONERO_PRESETS.stagenet,
 };
 
 export function cloneAlgorandPreset(network: AlgorandNetworkId): AlgorandNetworkConfig {
