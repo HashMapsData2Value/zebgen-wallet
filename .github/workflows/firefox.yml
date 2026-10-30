@@ -9,9 +9,16 @@ permissions:
 
 jobs:
   scan-runtime:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
+      - name: Report runner environment
+        run: |
+          uname -a
+          cat /etc/os-release
+          node --version
+          npm --version
+          df -h
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: '22' }
