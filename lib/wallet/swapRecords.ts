@@ -1,4 +1,5 @@
 import { decryptSeed, encryptSeed } from './seedVault.ts';
+import { swapOrigin } from '../provider/swapOrigin.ts';
 import {
   validateCombinedContext,
   type CombinedAddressContext,
@@ -6,6 +7,7 @@ import {
 } from './combinedAddressContext.ts';
 
 export interface SwapRecord {
+  origin?: string;
   settlement?: { kind: 'claim' | 'refund' | 'punish'; txId: string; confirmedRound: string };
   agreementDigest?: string;
   version: 1;
@@ -118,6 +120,7 @@ export function validateSwapRecord(value: unknown): asserts value is SwapRecord 
   )
     throw new Error('Invalid saved swap record.');
   validateCombinedContext(record.context, record.context);
+  if (record.origin !== undefined) swapOrigin(record.origin);
   if (
     record.settlement &&
     (!['claim', 'refund', 'punish'].includes(record.settlement.kind) ||
@@ -210,11 +213,13 @@ export async function saveSwapRecord(
     validateSwapRecord(previous);
     const previousIdentity = {
       ...previous,
+      origin: undefined,
       settlement: undefined,
       context: { ...previous.context, restoreHeight: 0 },
     };
     const identity = {
       ...record,
+      origin: undefined,
       settlement: undefined,
       context: { ...record.context, restoreHeight: 0 },
     };
@@ -232,6 +237,9 @@ export async function saveSwapRecord(
     key,
     {
       ...record,
+      ...((previous as SwapRecord | null)?.origin
+        ? { origin: (previous as SwapRecord).origin }
+        : {}),
       ...((previous as SwapRecord | null)?.settlement
         ? { settlement: (previous as SwapRecord).settlement }
         : {}),

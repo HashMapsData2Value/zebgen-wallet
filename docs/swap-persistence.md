@@ -1,3 +1,25 @@
+# Beta And Production Origins
+
+Website-requested saved-swap lists are filtered by the trusted requesting origin:
+beta lists only beta records, and production lists production records plus legacy
+records without origin metadata. Local development origins remain separate too.
+This filter is applied before returning swap details to the website. Zebgen's own
+swap inventory and recovery tools retain access to records from every origin.
+
+Zebgen remains one wallet for both `beta.leakswap.com` and `app.leakswap.com`.
+Each website requires its own connection approval. New swap records retain the
+trusted requesting origin as optional encrypted metadata, and the wallet uses
+it for resume links and a Beta label. The original origin survives stale saves;
+legacy records without one reopen on `app.leakswap.com`. Origin is not part of
+the signed agreement or a restriction on key recovery. Network identity remains
+bound to the saved genesis hash and signed Monero network.
+
+Invite and acceptance links returned to a website use that requesting origin.
+During public testing, the wallet's New Swap action opens beta. The beta website
+only supports Algorand Testnet / Monero Stagenet; zebgen itself keeps its normal
+network settings and recovery tools. Switching websites does not migrate browser
+local storage or silently transfer connection approval.
+
 # Durable LeakSwap Records
 
 Zebgen stores versioned, password-encrypted swap records, signing journals and

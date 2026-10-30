@@ -45,6 +45,7 @@ export interface ZebgenDepositLeakSwapMoneroResult {
 }
 
 export interface ZebgenSavedLeakSwap {
+  origin?: string;
   deadlineUnit: 'round';
   createdRound: number;
   settlement?: { kind: 'claim' | 'refund' | 'punish'; txId: string; confirmedRound: string };

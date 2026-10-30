@@ -13,6 +13,7 @@ import { listSwapShares } from '../../lib/wallet/swapShareVault';
 import SwapRecoveryTools from './SwapRecoveryTools';
 import SwapBackupTools from './SwapBackupTools';
 import { formatRoundDeadline } from 'leakswap-utils/dist/swapTiming.js';
+import { BETA_SWAP_ORIGIN, swapOrigin } from '../../lib/provider/swapOrigin';
 
 interface LeakSwapPanelProps {
   lockSecret?: string | null;
@@ -108,6 +109,7 @@ export default function LeakSwapPanel({ lockSecret, onRecover }: LeakSwapPanelPr
       <article className="swap-list-item" key={`${swap.genesisHash}:${swap.appId}:${swap.role}`}>
         <div className="swap-row-heading">
           <h4>Swap {swap.appId}</h4>
+          {swap.origin === BETA_SWAP_ORIGIN ? <span>Beta</span> : null}
           <span>{swap.role === 'ali' ? 'Ali · You send ALGO' : 'Xin · You send XMR'}</span>
         </div>
         <p
@@ -139,7 +141,7 @@ export default function LeakSwapPanel({ lockSecret, onRecover }: LeakSwapPanelPr
         </dl>
         <a
           className="app-link"
-          href={`https://app.leakswap.com/swap/${swap.appId}`}
+          href={`${swapOrigin(swap.origin)}/swap/${swap.appId}`}
           target="_blank"
           rel="noreferrer"
         >
@@ -161,7 +163,7 @@ export default function LeakSwapPanel({ lockSecret, onRecover }: LeakSwapPanelPr
       </div>
       <a
         className="app-link new-swap"
-        href="https://app.leakswap.com/swap"
+        href={`${BETA_SWAP_ORIGIN}/swap`}
         target="_blank"
         rel="noreferrer"
       >

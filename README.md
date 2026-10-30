@@ -110,9 +110,17 @@ All beta builds are also available on the releases page. To try a build:
 
 This extension is not published on the Chrome Web Store or Firefox AMO — it's
 distributed this way for testers only. Release builds expose `window.zebgen`
-only on `https://app.leakswap.com/*`. The LeakSwap homepage is hosted separately
+only on `https://app.leakswap.com/*` and `https://beta.leakswap.com/*`. The LeakSwap homepage is hosted separately
 at `https://leakswap.com`; `https://zebgen.com` is reserved for the extension's
 landing/download page. DNS and hosting must be configured separately.
+
+### Website deployment
+
+For the zebgen.com Cloudflare Worker, set the build command to
+`npm run build:site` and the deploy command to `npx wrangler deploy`.
+For preview builds, use `npx wrangler preview`; the Wrangler configuration
+enables previews and serves `site-dist` for both deployment types.
+`npm run build` builds the browser extension, not the website.
 
 ### Local development and browser tests
 

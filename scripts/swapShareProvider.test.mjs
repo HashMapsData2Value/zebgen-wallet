@@ -50,6 +50,7 @@ function harness() {
   const saved = new Map();
   const scans = [];
   const unlocked = [];
+  const origins = [];
   const agreement = {
     offer: {
       payload: {
@@ -83,6 +84,8 @@ function harness() {
   };
   const modules = {
     '../../lib/wallet/swapRecordVault': {
+      saveVerifiedLeakSwap: async (_params, _secret, origin) => origins.push(['save', origin]),
+      listVerifiedLeakSwaps: async (_secret, origin) => origins.push(['list', origin]),
       verifyAgreementApplication: async (actualDigest, appId) => {
         assert.equal(actualDigest, digest);
         assert.equal(appId, 123n);
@@ -113,6 +116,9 @@ function harness() {
     '../../lib/wallet/moneroVault': wallet,
     '../../lib/wallet/moneroWallet': monero,
     '../../lib/wallet/swapHandshakeVault': {
+      createSwapInvite: async (_params, _secret, origin) => origins.push(['invite', origin]),
+      acceptSwapInvite: async (_link, _secret, _control, origin) =>
+        origins.push(['accept', origin]),
       loadAcceptedSwap: async (actualDigest) => {
         assert.equal(actualDigest, digest);
         return agreement;
@@ -152,10 +158,27 @@ function harness() {
     saved,
     scans,
     unlocked,
-    invoke: (type, params) =>
-      api.computeResult({ type, params, origin: 'https://app.leakswap.com' }, 'synthetic-password'),
+    origins,
+    invoke: (type, params, origin = 'https://app.leakswap.com') =>
+      api.computeResult({ type, params, origin }, 'synthetic-password'),
   };
 }
+
+test('invite, acceptance and saved swaps receive the trusted request origin, not page parameters', async () => {
+  const vault = harness();
+  const origin = 'https://beta.leakswap.com';
+  const params = { link: 'synthetic-invite', origin: 'https://evil.example' };
+  await vault.invoke('createSwapInvite', params, origin);
+  await vault.invoke('acceptSwapInvite', params, origin);
+  await vault.invoke('saveLeakSwap', params, origin);
+  await vault.invoke('listLeakSwaps', params, origin);
+  assert.deepEqual(vault.origins, [
+    ['invite', origin],
+    ['accept', origin],
+    ['save', origin],
+    ['list', origin],
+  ]);
+});
 
 test('share provider uses the explicit agreement share and delegates settlement without exporting a signature', async () => {
   const vault = harness();

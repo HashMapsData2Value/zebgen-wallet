@@ -4,6 +4,7 @@ import { bytesToHex } from '@noble/hashes/utils.js';
 import { getNetworkSettings } from '../network/networkStore';
 import { verifyAlgorandGenesis } from '../network/chainIdentity';
 import { bytesToBase64, base64ToBytes } from '../provider/base64';
+import { swapOrigin } from '../provider/swapOrigin.ts';
 import type { ZebgenSavedLeakSwap, ZebgenSaveLeakSwapParams } from '../provider/types';
 import { deriveActiveSeedAlgoAddressAtIndex } from './algoWallet';
 import {
@@ -133,6 +134,7 @@ async function chain() {
 export async function saveVerifiedLeakSwap(
   params: ZebgenSaveLeakSwapParams,
   secret: string,
+  origin?: string,
 ): Promise<{ appId: string }> {
   if (!params.agreementDigest)
     throw new Error('A signed round-based agreement is required to save a swap.');
@@ -199,6 +201,7 @@ export async function saveVerifiedLeakSwap(
   );
   assertRoundDeadlines(agreement.offer.payload);
   const record: SwapRecord = {
+    ...(origin ? { origin } : {}),
     version: 1,
     genesisHash,
     appId: params.appId,
@@ -433,12 +436,15 @@ export async function validateAgreementSigning(
 
 export async function listVerifiedLeakSwaps(
   secret: string,
+  origin?: string,
 ): Promise<{ swaps: ZebgenSavedLeakSwap[] }> {
+  const requestedOrigin = origin === undefined ? undefined : swapOrigin(origin);
   const { settings, genesisHash, algod } = await chain();
   const { algoAddress } = await deriveActiveSeedAlgoAddressAtIndex(secret, 0);
   const walletId = (await getMoneroWalletState()).activeWalletId;
   const records = (await listSwapRecords(browser.storage.local, secret)).filter(
     (record) =>
+      (requestedOrigin === undefined || swapOrigin(record.origin) === requestedOrigin) &&
       record.genesisHash === genesisHash &&
       record.algoAddress === algoAddress &&
       (record.context.walletId === walletId || record.context.walletId < 0) &&
@@ -505,6 +511,7 @@ export async function listVerifiedLeakSwaps(
       }
     }
     swaps.push({
+      ...(record.origin ? { origin: record.origin } : {}),
       appId: record.appId,
       appAddress: record.appAddress,
       genesisHash,

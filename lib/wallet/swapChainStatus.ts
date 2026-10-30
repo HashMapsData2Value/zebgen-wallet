@@ -3,6 +3,7 @@ import type { SwapRecord } from './swapRecords';
 import type { SwapStatusSnapshot } from './swapStatus';
 
 export interface SavedSwapStatus extends SwapStatusSnapshot {
+  origin?: string;
   appId: string;
   genesisHash: string;
   moneroNetwork: string;
@@ -17,6 +18,7 @@ export async function readSwapChainStatus(
   chainRound?: number,
 ): Promise<SavedSwapStatus> {
   const result: SavedSwapStatus = {
+    ...(record.origin ? { origin: record.origin } : {}),
     appId: record.appId,
     genesisHash: record.genesisHash,
     moneroNetwork: record.context.network,

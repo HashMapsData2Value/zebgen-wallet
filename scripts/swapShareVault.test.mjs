@@ -12,6 +12,7 @@ import * as handshake from 'leakswap-utils/dist/swapHandshake.js';
 import * as agreement from 'leakswap-utils/dist/swapAgreement.js';
 import * as contexts from '../lib/wallet/combinedAddressContext.ts';
 import * as timingPolicy from '../lib/wallet/swapTimingPolicy.ts';
+import * as swapOrigins from '../lib/provider/swapOrigin.ts';
 import { exportSwapBackup, restoreSwapBackup } from '../lib/wallet/swapBackup.ts';
 
 const require = createRequire(import.meta.url);
@@ -28,7 +29,8 @@ function load(name, modules = {}, globals = {}) {
   const api = {};
   runInNewContext(compiled, {
     exports: api,
-    require: (name) => modules[name] ?? require(name),
+    require: (name) =>
+      modules[name] ?? (name === '../provider/swapOrigin.ts' ? swapOrigins : require(name)),
     crypto,
     Uint8Array,
     Uint32Array,
@@ -276,6 +278,33 @@ test('wallet refuses unsafe new invites and authenticated counterparty offers be
     );
   }
   assert.equal((await vault.shares.listSwapShares(secret)).length, 1);
+});
+
+test('beta invite and acceptance links keep the requesting origin without changing signed terms', async () => {
+  const vault = harness();
+  const origin = 'https://beta.leakswap.com';
+  const invite = await vault.api.createSwapInvite(terms(), secret, origin);
+  assert.equal(new URL(invite.link).origin, origin);
+  vault.select(1);
+  const accepted = await vault.api.acceptSwapInvite(invite.link, secret, undefined, origin);
+  assert.equal(new URL(accepted.link).origin, origin);
+  const retried = await vault.api.acceptSwapInvite(invite.link, secret, undefined, origin);
+  assert.equal(new URL(retried.link).origin, origin);
+  assert.equal(
+    retried.acceptance.payload.xinPublicSpendKey,
+    accepted.acceptance.payload.xinPublicSpendKey,
+  );
+  vault.select(0);
+  await vault.api.confirmSwapAcceptance(accepted.link, secret);
+  vault.reload();
+  assert.equal(
+    (await vault.api.loadAcceptedSwap(invite.offerDigest, secret)).offer.payload.offerId,
+    invite.offer.payload.offerId,
+  );
+  await assert.rejects(
+    vault.api.createSwapInvite(terms(), secret, 'https://evil.example'),
+    /origin/,
+  );
 });
 
 test('approved invite persists encrypted fresh shares without changing normal wallets or exposing spend keys', async () => {

@@ -15,6 +15,7 @@ test('Workers uploads the built site including generated logo assets', async () 
   const config = parsed.config;
   assert.equal(config.assets.directory, './site-dist');
   assert.equal(config.name, 'zebgen');
+  assert.deepEqual(config.previews, {});
 });
 
 test('website builds from source and brand assets without installed packages', async () => {

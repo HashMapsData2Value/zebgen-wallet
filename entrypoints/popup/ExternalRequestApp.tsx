@@ -590,10 +590,15 @@ async function computeResult(
   if (pending.type === 'recoverLeakSwapMonero')
     return recoverLeakSwap(pending.params as RecoverLeakSwapParams, secret);
   if (pending.type === 'createSwapInvite')
-    return createSwapInvite(pending.params as SwapInviteTerms, secret);
+    return createSwapInvite(pending.params as SwapInviteTerms, secret, pending.origin);
   if (pending.type === 'acceptSwapInvite') {
     onPhase?.('monero');
-    return acceptSwapInvite((pending.params as { link: string }).link, secret, control);
+    return acceptSwapInvite(
+      (pending.params as { link: string }).link,
+      secret,
+      control,
+      pending.origin,
+    );
   }
   if (pending.type === 'confirmSwapAcceptance')
     return confirmSwapAcceptance((pending.params as { link: string }).link, secret);
@@ -734,8 +739,8 @@ async function computeResult(
   }
 
   if (pending.type === 'saveLeakSwap')
-    return saveVerifiedLeakSwap(pending.params as ZebgenSaveLeakSwapParams, secret);
-  if (pending.type === 'listLeakSwaps') return listVerifiedLeakSwaps(secret);
+    return saveVerifiedLeakSwap(pending.params as ZebgenSaveLeakSwapParams, secret, pending.origin);
+  if (pending.type === 'listLeakSwaps') return listVerifiedLeakSwaps(secret, pending.origin);
 
   if (pending.type === 'computeMoneroLeakySignature') {
     const params = pending.params as {

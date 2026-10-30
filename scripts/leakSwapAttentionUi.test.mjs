@@ -8,6 +8,7 @@ import * as jsx from 'react/jsx-runtime';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createRequire } from 'node:module';
 import * as status from '../lib/wallet/swapStatus.ts';
+import * as swapOrigins from '../lib/provider/swapOrigin.ts';
 import { formatAtomic } from '../lib/wallet/formatAtomic.ts';
 import * as icons from 'lucide-react';
 import { formatRoundDeadline } from 'leakswap-utils/dist/swapTiming.js';
@@ -36,6 +37,7 @@ function render(swaps, now = 9000, { loading = false, error = null, shares = [],
       if (name === './SwapBackupTools') return { default: () => null };
       if (name === 'leakswap-utils/dist/swapTiming.js') return { formatRoundDeadline };
       if (name.endsWith('/swapStatus')) return status;
+      if (name.endsWith('/swapOrigin')) return swapOrigins;
       if (name.endsWith('/formatAtomic')) return { formatAtomic };
       if (name.endsWith('.png'))
         return {
@@ -88,6 +90,16 @@ test('stale readiness becomes an unverified urgent check rather than a refund in
   assert.match(html, /Status not verified/);
   assert.doesNotMatch(html, /Leaky refund is allowed/);
   assert.match(html, /Refresh the chain status/);
+});
+
+test('beta swaps retain beta resume links while legacy swaps retain production links', () => {
+  const html = render([
+    { ...swap('1', 'ali', 'ready'), origin: 'https://beta.leakswap.com' },
+    swap('2', 'xin', 'ready'),
+  ]);
+  assert.match(html, /https:\/\/beta.leakswap.com\/swap\/1/);
+  assert.match(html, /https:\/\/app.leakswap.com\/swap\/2/);
+  assert.match(html, /<span>Beta<\/span>/);
 });
 
 test('unavailable applications do not count as urgent active swaps or confirmed settlement', () => {

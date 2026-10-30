@@ -101,6 +101,7 @@ function App({ variant = 'popup' }: AppProps) {
   const [unlockSecret, setUnlockSecret] = useState('');
   const [sessionLockSecret, setSessionLockSecret] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [walletLoadError, setWalletLoadError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSettingLock, setIsSettingLock] = useState(false);
   const [isUnlocking, setIsUnlocking] = useState(false);
@@ -230,10 +231,11 @@ function App({ variant = 'popup' }: AppProps) {
         setSelectedWalletType('algorand');
         setSessionLockSecret(null);
       } catch (err) {
+        console.error('Unable to load wallet state', err);
         if (!isMounted) {
           return;
         }
-        setError(err instanceof Error ? err.message : 'Failed to load wallet state.');
+        setWalletLoadError(err instanceof Error ? err.message : 'Failed to load wallet state.');
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -962,7 +964,19 @@ function App({ variant = 'popup' }: AppProps) {
 
       {isLoading ? <p>Loading wallet state...</p> : null}
 
-      {!isLoading && !isLockConfigured ? (
+      {walletLoadError ? (
+        <section className="card" role="alert">
+          <h2>Wallet storage unavailable</h2>
+          <p>Unable to read your wallet. This does not mean your wallet is empty.</p>
+          <p>Do not reset the extension or create a replacement wallet to resolve this error.</p>
+          <p className="error">{walletLoadError}</p>
+          <button type="button" onClick={() => window.location.reload()}>
+            Retry
+          </button>
+        </section>
+      ) : null}
+
+      {!isLoading && !walletLoadError && !isLockConfigured ? (
         <section className="card">
           <h2>Create Wallet Password or PIN</h2>
           <p className="hint">This one credential unlocks access to all mnemonic operations.</p>

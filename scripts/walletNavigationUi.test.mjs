@@ -123,7 +123,7 @@ test('wallet navigation preserves multiple Algorand mnemonics and their addresse
       .click();
     await capture(page, 'leakswap');
     const newSwap = page.getByRole('link', { name: 'New Swap' });
-    assert.equal(await newSwap.getAttribute('href'), 'https://app.leakswap.com/swap');
+    assert.equal(await newSwap.getAttribute('href'), 'https://beta.leakswap.com/swap');
     assert.equal(
       await newSwap.evaluate((element) => getComputedStyle(element).borderTopColor),
       'rgb(212, 39, 39)',

@@ -14,6 +14,7 @@ import { leakySign } from '../lib/wallet/leakySign.ts';
 import { ed25519 } from '@noble/curves/ed25519.js';
 import * as timingPolicy from '../lib/wallet/swapTimingPolicy.ts';
 import * as roundTiming from 'leakswap-utils/dist/swapTiming.js';
+import * as swapOrigins from '../lib/provider/swapOrigin.ts';
 import { artifactApi, canonical, programs } from './helpers/swapAgreementArtifact.mjs';
 
 const source = readFileSync(new URL('../lib/wallet/swapRecordVault.ts', import.meta.url), 'utf8');
@@ -206,6 +207,7 @@ function harness(locksAvailable = true, fixtureAgreement = agreement, onChainPro
     runInNewContext(compiled, {
       exports: api,
       require: (name) => {
+        if (name === '../provider/swapOrigin.ts') return swapOrigins;
         if (!(name in modules)) throw new Error('Unexpected import: ' + name);
         return modules[name];
       },
@@ -688,6 +690,30 @@ test('completed and legacy saved swaps still list without application queries or
   assert.equal(listed.swaps.length, 2);
   assert.equal(listed.swaps[0].appId, '123');
   assert.equal(listed.swaps[1].appId, '124');
+});
+
+test('website listings isolate origins, legacy records belong to production, and internal access retains all swaps', async () => {
+  const vault = harness();
+  await vault.api.saveVerifiedLeakSwap(
+    { appId: '123', agreementDigest: digest, combinedAddress: 'mock-combined' },
+    'secret',
+    'https://beta.leakswap.com',
+  );
+  vault.saved.push(
+    { ...vault.saved[0], appId: '124', origin: 'https://app.leakswap.com' },
+    { ...vault.saved[0], appId: '125', origin: undefined },
+    { ...vault.saved[0], appId: '126', origin: 'http://localhost:5173' },
+  );
+  const ids = async (origin) =>
+    Array.from(
+      (await vault.api.listVerifiedLeakSwaps('secret', origin)).swaps,
+      (swap) => swap.appId,
+    );
+  assert.deepEqual(await ids('https://beta.leakswap.com'), ['123']);
+  assert.deepEqual(await ids('https://app.leakswap.com'), ['124', '125']);
+  assert.deepEqual(await ids('http://localhost:5173'), ['126']);
+  assert.deepEqual(await ids(), ['123', '124', '125', '126']);
+  await assert.rejects(ids('https://evil.example'), /origin/);
 });
 
 test('saveVerifiedLeakSwap cannot save two matching applications under one agreement', async () => {

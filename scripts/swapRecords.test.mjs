@@ -139,6 +139,19 @@ test('confirmed settlement survives reopening and cannot be replaced or cleared 
   );
 });
 
+test('origin metadata survives reopening and stale saves without changing swap identity', async () => {
+  const store = storage();
+  await saveSwapRecord(store, record, 'secret');
+  await saveSwapRecord(store, { ...record, origin: 'https://beta.leakswap.com' }, 'secret');
+  await saveSwapRecord(store, record, 'secret');
+  await saveSwapRecord(store, { ...record, origin: 'https://app.leakswap.com' }, 'secret');
+  assert.equal((await listSwapRecords(store, 'secret'))[0].origin, 'https://beta.leakswap.com');
+  await assert.rejects(
+    saveSwapRecord(storage(), { ...record, origin: 'https://evil.example' }, 'secret'),
+    /origin/,
+  );
+});
+
 test('signed transaction journal survives lost page state without claiming confirmation', async () => {
   const store = storage();
   const entry = {

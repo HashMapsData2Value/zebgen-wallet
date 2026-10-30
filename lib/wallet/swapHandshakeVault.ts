@@ -26,6 +26,7 @@ import type { MoneroFundingControl } from '../monero/moneroDaemon';
 import { findSwapShare, storeSwapShare, unlockSwapShare } from './swapShareVault';
 import { assertUsablePublicSpendKey } from './spendKeyValidation';
 import { assertSwapFundingTime } from './swapTimingPolicy';
+import { swapOrigin } from '../provider/swapOrigin.ts';
 
 export interface SwapInviteTerms {
   algoAmount: string;
@@ -113,7 +114,8 @@ async function persist(key: string, value: unknown, secret: string) {
   }
 }
 
-export async function createSwapInvite(terms: SwapInviteTerms, secret: string) {
+export async function createSwapInvite(terms: SwapInviteTerms, secret: string, origin?: string) {
+  const site = swapOrigin(origin);
   validateInviteTerms(terms);
   const owner = await ownIdentity(secret);
   const material = generateMoneroKeyMaterial(owner.settings.monero.networkType);
@@ -150,13 +152,13 @@ export async function createSwapInvite(terms: SwapInviteTerms, secret: string) {
   const offer: SignedOffer = { kind: 'invite', payload, signature };
   await persist(
     `leakswapHandshake:${owner.genesisHash}:${owner.algoAddress}:${payload.offerId}:invite`,
-    { version: 1, walletId, offer },
+    { version: 1, walletId, offer, origin: site },
     secret,
   );
   return {
     offer,
     offerDigest: digest,
-    link: await buildHandshakeUrl('https://app.leakswap.com', offer),
+    link: await buildHandshakeUrl(site, offer),
   };
 }
 
@@ -164,7 +166,9 @@ export async function acceptSwapInvite(
   link: string,
   secret: string,
   control?: MoneroFundingControl,
+  origin?: string,
 ) {
+  const site = swapOrigin(origin);
   const offer = await parseHandshakeLink(link);
   if (offer.kind !== 'invite') throw new Error('Expected a swap invite link.');
   await verifyHandshake(offer, algosdk.decodeAddress(offer.payload.aliAlgoAddress).publicKey);
@@ -203,7 +207,7 @@ export async function acceptSwapInvite(
   if (saved) {
     return {
       ...saved,
-      link: await buildHandshakeUrl('https://app.leakswap.com', saved.acceptance),
+      link: await buildHandshakeUrl(site, saved.acceptance),
     };
   }
   const walletId = await storeSwapShare(
@@ -228,13 +232,13 @@ export async function acceptSwapInvite(
   const acceptance: SignedAcceptance = { kind: 'accept', payload, signature };
   await persist(
     `leakswapHandshake:${owner.genesisHash}:${owner.algoAddress}:${offer.payload.offerId}:accept`,
-    { version: 1, walletId, offer, acceptance },
+    { version: 1, walletId, offer, acceptance, origin: site },
     secret,
   );
   return {
     offer,
     acceptance,
-    link: await buildHandshakeUrl('https://app.leakswap.com', acceptance),
+    link: await buildHandshakeUrl(site, acceptance),
   };
 }
 
@@ -272,6 +276,7 @@ export async function confirmSwapAcceptance(link: string, secret: string) {
         version: number;
         walletId: number;
         offer: SignedOffer;
+        origin?: string;
       };
       if (record.version !== 1) continue;
       const offer = record.offer;
@@ -295,7 +300,13 @@ export async function confirmSwapAcceptance(link: string, secret: string) {
       assertSwapFundingTime(offer.payload, Number((await owner.algod.status().do()).lastRound));
       await persist(
         `${prefix}${offer.payload.offerId}:accepted`,
-        { version: 1, walletId: record.walletId, offer, acceptance },
+        {
+          version: 1,
+          walletId: record.walletId,
+          offer,
+          acceptance,
+          ...(record.origin ? { origin: swapOrigin(record.origin) } : {}),
+        },
         secret,
       );
       return { offer, acceptance };
