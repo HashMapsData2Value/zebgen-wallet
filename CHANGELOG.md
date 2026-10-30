@@ -1,3 +1,18 @@
+# [0.1.0-beta.1](https://github.com/HashMapsData2Value/zebgen-wallet/compare/v0.0.1-beta.4...v0.1.0-beta.1) (2026-10-30)
+
+
+### Bug Fixes
+
+* **ci:** gate releases and pull requests on Chrome scan runtime ([32f228e](https://github.com/HashMapsData2Value/zebgen-wallet/commit/32f228e70300f88ddae853b81319c641e092f1b8))
+* **ci:** pin Ubuntu runner and report startup environment ([165a63e](https://github.com/HashMapsData2Value/zebgen-wallet/commit/165a63e3ae526afab8e58f93ca43c86aeeaaf923))
+* **monero:** pin authenticated transport and receipt lookups ([ffb79fd](https://github.com/HashMapsData2Value/zebgen-wallet/commit/ffb79fda189fcf02649e250794d9cc0fdcafc6db))
+* **swap:** verify terminal receipts without recovering wallets ([fddc0e5](https://github.com/HashMapsData2Value/zebgen-wallet/commit/fddc0e5a5df843fb3784d248cacddcfc44ff5039))
+
+
+### Features
+
+* **wallet:** support beta swap origins and safeguard startup ([585029e](https://github.com/HashMapsData2Value/zebgen-wallet/commit/585029ef57caddfb0efc1e2dd5e3f654a88b9f10))
+
 ## [0.0.1-beta.4](https://github.com/HashMapsData2Value/zebgen-wallet/compare/v0.0.1-beta.3...v0.0.1-beta.4) (2026-10-27)
 
 
