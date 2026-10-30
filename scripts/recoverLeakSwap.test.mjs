@@ -298,11 +298,11 @@ test('Ali own leaky refund explains accepted PIN and Xin-only recovery without s
     vault.state.indexerFails = localFallback;
     await assert.rejects(
       vault.recover({ appId: '42' }),
-      /Confirmed Leaky Refund.*Only Xin.*PIN was accepted/,
+      /Confirmed Leaky Refund.*Only the XMR holder.*PIN was accepted/,
     );
     await assert.rejects(
       vault.recover({ appId: '42', settlementTxId: vault.txId }),
-      /Confirmed Leaky Refund.*Only Xin/,
+      /Confirmed Leaky Refund.*Only the XMR holder/,
     );
     assert.equal(vault.state.saves, 0);
     assert.equal(vault.state.evidence, null);

@@ -6,6 +6,7 @@ import { base64ToBytes, bytesToBase64 } from '../provider/base64';
 import { deriveActiveSeedAlgoAddressAtIndex } from './algoWallet';
 import {
   listSwapRecords,
+  saveSwapRecord,
   loadSettlementEvidence,
   saveSettlementEvidence,
   swapRecordKey,
@@ -24,11 +25,13 @@ import { verifiedSwapSettlement } from './swapSettlement';
 export interface RecoverLeakSwapParams {
   appId: string;
   settlementTxId?: string;
+  inspectOnly?: boolean;
 }
 export interface RecoverLeakSwapResult {
-  combinedAddress: string;
+  combinedAddress?: string;
   settlementTxId: string;
-  walletId: number;
+  walletId?: number;
+  settlement?: NonNullable<Awaited<ReturnType<typeof listSwapRecords>>[number]['settlement']>;
 }
 
 export async function recoverLeakSwap(
@@ -54,6 +57,12 @@ export async function recoverLeakSwap(
       'Open the original Algorand account and load its saved swap before recovering.',
     );
   const record = records[0];
+  if (
+    params.inspectOnly &&
+    record.settlement &&
+    (!params.settlementTxId || params.settlementTxId === record.settlement.txId)
+  )
+    return { settlementTxId: record.settlement.txId, settlement: record.settlement };
   const context = await loadMoneroCombinedContext(record.context, secret);
   if (!context) throw new Error('Original combined address context is unavailable.');
   const owner = await unlockMoneroWallet(secret, settings.monero.networkType, context.walletId);
@@ -68,6 +77,7 @@ export async function recoverLeakSwap(
   };
   let found: ({ scalar: string } & SettlementEvidence) | undefined;
   let unavailableReason: string | undefined;
+  let verifiedSettlement: RecoverLeakSwapResult['settlement'];
   function inspectSettlement(transaction: algosdk.Transaction, round: bigint) {
     try {
       const settlement = verifiedSwapSettlement(
@@ -77,13 +87,14 @@ export async function recoverLeakSwap(
         record,
         owner!.publicSpendKey,
       );
+      verifiedSettlement = settlement;
       if (settlement.kind === 'punish') {
         unavailableReason = `Confirmed Punish Refund (${settlement.txId}). No Monero recovery share was revealed; this settlement cannot recover the combined wallet. Retrying your PIN will not change this.`;
       } else if (
         (record.role === 'ali' && settlement.kind === 'refund') ||
         (record.role === 'xin' && settlement.kind === 'claim')
       ) {
-        unavailableReason = `Confirmed ${settlement.kind === 'refund' ? 'Leaky Refund' : 'Leaky Claim'} (${settlement.txId}). This reveals your own share, not your counterparty's. Only ${record.role === 'ali' ? 'Xin' : 'Ali'} can recover the combined Monero wallet from this settlement. Your PIN was accepted; retrying it will not change the settlement.`;
+        unavailableReason = `Confirmed ${settlement.kind === 'refund' ? 'Leaky Refund' : 'Leaky Claim'} (${settlement.txId}). This reveals your own share, not your counterparty's. Only the ${record.role === 'ali' ? 'XMR holder' : 'ALGO holder'} can recover the combined Monero wallet from this settlement. Your PIN was accepted; retrying it will not change the settlement.`;
       }
     } catch {
       return;
@@ -98,13 +109,15 @@ export async function recoverLeakSwap(
     const transaction = algosdk.decodeUnsignedTransaction(base64ToBytes(cached.transaction));
     if (transaction.txID() !== cached.txId)
       throw new Error('Saved settlement transaction ID mismatch.');
-    found = {
-      ...cached,
-      scalar: recoverSettlementScalar(transaction, BigInt(cached.confirmedRound), binding),
-    };
+    inspectSettlement(transaction, BigInt(cached.confirmedRound));
+    if (!params.inspectOnly)
+      found = {
+        ...cached,
+        scalar: recoverSettlementScalar(transaction, BigInt(cached.confirmedRound), binding),
+      };
   }
   let ids: string[];
-  if (found) ids = [];
+  if (found || (params.inspectOnly && verifiedSettlement)) ids = [];
   else if (params.settlementTxId) ids = [params.settlementTxId];
   else {
     const indexerEndpoint = settings.algorand.indexer;
@@ -137,7 +150,11 @@ export async function recoverLeakSwap(
       const status = await algod.status().do();
       const lastRound = status.lastRound;
       const firstRound = lastRound > 2048n ? lastRound - 2047n : 0n;
-      for (let round = lastRound; round >= firstRound && !found; round--) {
+      for (
+        let round = lastRound;
+        round >= firstRound && !found && !(params.inspectOnly && verifiedSettlement);
+        round--
+      ) {
         const { block } = await algod.block(round).do();
         for (const entry of block.payset) {
           const storedTransaction = entry.signedTxn.signedTxn.txn;
@@ -151,6 +168,10 @@ export async function recoverLeakSwap(
           if (entry.hasGenesisID) encoded.set('gen', block.header.genesisID);
           const transaction = algosdk.Transaction.fromEncodingData(encoded);
           inspectSettlement(transaction, round);
+          if (params.inspectOnly) {
+            if (verifiedSettlement) break;
+            continue;
+          }
           try {
             found = {
               scalar: recoverSettlementScalar(transaction, round, binding),
@@ -167,7 +188,7 @@ export async function recoverLeakSwap(
     }
   }
   for (const txId of ids) {
-    if (found) break;
+    if (found || (params.inspectOnly && verifiedSettlement)) break;
     let pending;
     try {
       pending = await algod.pendingTransactionInformation(txId).do();
@@ -201,6 +222,10 @@ export async function recoverLeakSwap(
       if (!pending) throw new Error('Confirmed settlement was not found in its reported block.');
     }
     inspectSettlement(pending.txn.txn, pending.confirmedRound ?? 0n);
+    if (params.inspectOnly) {
+      if (verifiedSettlement) break;
+      continue;
+    }
     if (params.settlementTxId && unavailableReason) throw new Error(unavailableReason);
     try {
       const scalar = recoverSettlementScalar(
@@ -219,6 +244,17 @@ export async function recoverLeakSwap(
     } catch (error) {
       if (params.settlementTxId) throw error;
     }
+  }
+  if (params.inspectOnly) {
+    if (!verifiedSettlement)
+      throw new Error(
+        'No confirmed settlement could be verified. Deletion alone does not prove settlement.',
+      );
+    const settlement = verifiedSettlement;
+    await navigator.locks.request(swapRecordKey(record), () =>
+      saveSwapRecord(browser.storage.local, { ...record, settlement }, secret),
+    );
+    return { settlementTxId: settlement.txId, settlement };
   }
   if (!found)
     throw new Error(

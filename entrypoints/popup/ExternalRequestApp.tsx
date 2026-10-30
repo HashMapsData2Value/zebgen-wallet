@@ -304,8 +304,9 @@ function ExternalRequestApp({ requestId }: ExternalRequestAppProps) {
           pending.params as import('../../lib/provider/types').ZebgenSignAlgorandTransactionsParams,
         ) ? (
           <p className="hint">
-            Marks the swap ready for Xin to claim ALGO. For a saved agreement, Zebgen verifies the
-            Monero deposit and its confirmations before signing this Algorand transaction.
+            Marks the swap ready for the XMR holder to claim ALGO. For a saved agreement, Zebgen
+            verifies the Monero deposit and its confirmations before signing this Algorand
+            transaction.
           </p>
         ) : null}
 
@@ -323,15 +324,15 @@ function ExternalRequestApp({ requestId }: ExternalRequestAppProps) {
             <p>
               Application {(pending.params as SettleLeakSwapParams).appId}:{' '}
               {(pending.params as SettleLeakSwapParams).action === 'claim'
-                ? 'claim ALGO to the agreed Xin address'
-                : 'refund ALGO to the agreed Ali address'}
+                ? 'claim ALGO to the agreed XMR holder address'
+                : 'refund ALGO to the agreed ALGO holder address'}
               .
             </p>
             <p>
               Algorand fee:{' '}
               {(pending.params as SettleLeakSwapParams).action === 'claim'
-                ? "8 times the network minimum transaction fee, reimbursed from the sponsor. Claim also applies the agreed protocol fee."
-                : '0.005 ALGO, reimbursed from the sponsor.'}
+                ? '8 times the network minimum transaction fee, reimbursed from the sponsor. Claim also applies the agreed protocol fee.'
+                : '7 times the network minimum transaction fee, reimbursed from the sponsor.'}
             </p>
             <p className="error">
               Approval discloses this swap spend key to your Algorand node during simulation, even
@@ -445,9 +446,10 @@ function ExternalRequestApp({ requestId }: ExternalRequestAppProps) {
         ) : null}
         {pending.type === 'recoverLeakSwapMonero' ? (
           <p>
-            Recover Monero for saved application {(pending.params as RecoverLeakSwapParams).appId}{' '}
-            from a confirmed leaky claim or refund. Saves the combined wallet without switching
-            accounts or sending funds. Private spend keys stay in Zebgen.
+            {(pending.params as RecoverLeakSwapParams).inspectOnly
+              ? `Verify confirmed settlement history for saved application ${(pending.params as RecoverLeakSwapParams).appId}. Saves a verified receipt only; no wallet recovery or funds transfer.`
+              : `Recover Monero for saved application ${(pending.params as RecoverLeakSwapParams).appId} from a confirmed leaky claim or refund. Saves the combined wallet without switching accounts or sending funds.`}{' '}
+            Private spend keys stay in Zebgen.
           </p>
         ) : null}
 

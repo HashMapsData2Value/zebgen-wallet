@@ -28,8 +28,15 @@ export interface SettleLeakSwapResult {
 const TREASURY = 'KMRBWAK47LNYSDWH2FW3Q7BLZFXKHXURZG3SVUONHBHG5MPBNB2PIZKZBA';
 
 function nodeRejectionDetail(error: unknown): string {
-  const message = typeof error === 'string' ? error :
-    error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' ? error.message : '';
+  const message =
+    typeof error === 'string'
+      ? error
+      : error &&
+          typeof error === 'object' &&
+          'message' in error &&
+          typeof error.message === 'string'
+        ? error.message
+        : '';
   if (!message) return 'Node did not provide a rejection reason.';
   return message
     .split('[]transactions.SignedTxnWithAD')[0]
@@ -38,7 +45,12 @@ function nodeRejectionDetail(error: unknown): string {
     .slice(0, 1200);
 }
 
-export async function settleLeakSwap(params: SettleLeakSwapParams, secret: string, origin: string, signal?: AbortSignal): Promise<SettleLeakSwapResult> {
+export async function settleLeakSwap(
+  params: SettleLeakSwapParams,
+  secret: string,
+  origin: string,
+  signal?: AbortSignal,
+): Promise<SettleLeakSwapResult> {
   validateProviderRequest('settleLeakSwap', params);
   return navigator.locks.request(`leakswap-settle:${params.agreementDigest}`, async () => {
     const settings = await getNetworkSettings();
@@ -50,7 +62,8 @@ export async function settleLeakSwap(params: SettleLeakSwapParams, secret: strin
     assertRoundDeadlines(offer);
     const currentDeadlineValue = async () => {
       const round = Number((await algod.status().do()).lastRound);
-      if (!Number.isSafeInteger(round) || round < offer.createdRound) throw new Error('Current node round is unavailable.');
+      if (!Number.isSafeInteger(round) || round < offer.createdRound)
+        throw new Error('Current node round is unavailable.');
       return round;
     };
     const acceptance = agreement.acceptance.payload;
@@ -58,56 +71,93 @@ export async function settleLeakSwap(params: SettleLeakSwapParams, secret: strin
     const sender = claim ? acceptance.xinAlgoAddress : offer.aliAlgoAddress;
     const publicSpendKey = claim ? acceptance.xinPublicSpendKey : offer.aliPublicSpendKey;
     const assertActive = async () => {
-      if (signal?.aborted) throw new Error('Settlement cancelled. If simulation started, treat the swap key share as disclosed to the node.');
+      if (signal?.aborted)
+        throw new Error(
+          'Settlement cancelled. If simulation started, treat the swap key share as disclosed to the node.',
+        );
       await assertConnectionAccounts(origin, params);
-      if ((await deriveActiveSeedAlgoAddressAtIndex(secret, 0)).algoAddress !== sender) throw new Error('Only the agreed settlement party may continue.');
-      if (JSON.stringify(await getNetworkSettings()) !== JSON.stringify(settings)) throw new Error('Network settings changed during settlement.');
+      if ((await deriveActiveSeedAlgoAddressAtIndex(secret, 0)).algoAddress !== sender)
+        throw new Error('Only the agreed settlement party may continue.');
+      if (JSON.stringify(await getNetworkSettings()) !== JSON.stringify(settings))
+        throw new Error('Network settings changed during settlement.');
       const current = await currentDeadlineValue();
       if (claim ? current >= offer.t1 : current > offer.t0) {
-        throw new Error('Settlement deadline passed during approval. If simulation started, treat the swap key share as disclosed to the node.');
+        throw new Error(
+          'Settlement deadline passed during approval. If simulation started, treat the swap key share as disclosed to the node.',
+        );
       }
     };
     await assertActive();
     const suggestedParams = await algod.getTransactionParams().do();
-    verifyAlgorandGenesis(settings.algorand.network, suggestedParams.genesisID ?? '', endpoint.server);
-    if (!suggestedParams.genesisHash || bytesToBase64(suggestedParams.genesisHash) !== offer.algoGenesisHash) throw new Error('Settlement network does not match the agreement.');
+    verifyAlgorandGenesis(
+      settings.algorand.network,
+      suggestedParams.genesisID ?? '',
+      endpoint.server,
+    );
+    if (
+      !suggestedParams.genesisHash ||
+      bytesToBase64(suggestedParams.genesisHash) !== offer.algoGenesisHash
+    )
+      throw new Error('Settlement network does not match the agreement.');
     const app = await algod.getApplicationByID(appId).do();
-    const ready = app.params?.globalState?.find(entry => new TextDecoder().decode(entry.key) === 'aliReady')?.value.uint;
+    const ready = app.params?.globalState?.find(
+      (entry) => new TextDecoder().decode(entry.key) === 'aliReady',
+    )?.value.uint;
     if (ready === undefined) throw new Error('Swap readiness is unavailable.');
     const current = await currentDeadlineValue();
-    if (claim ? current >= offer.t1 || (ready === 0n && current <= offer.t0) : ready !== 0n || current > offer.t0) {
-      throw new Error('The requested settlement is not available at the current readiness or deadline.');
+    if (
+      claim
+        ? current >= offer.t1 || (ready === 0n && current <= offer.t0)
+        : ready !== 0n || current > offer.t0
+    ) {
+      throw new Error(
+        'The requested settlement is not available at the current readiness or deadline.',
+      );
     }
     const escrow = await algod.accountInformation(algosdk.getApplicationAddress(appId)).do();
-    if (escrow.amount < BigInt(offer.algoAmount)) throw new Error('Escrow balance is below the authenticated ALGO amount.');
+    if (escrow.amount < BigInt(offer.algoAmount))
+      throw new Error('Escrow balance is below the authenticated ALGO amount.');
     const sponsor = agreementSponsorLogicSig(appId, agreement);
     const sponsorBalance = await algod.accountInformation(sponsor.address()).do();
     const minFee = suggestedParams.minFee;
-    if (typeof minFee !== 'bigint' || minFee <= 0n) throw new Error('Network minimum transaction fee is unavailable.');
-    const fee = claim ? 8n * minFee : 5000n;
+    if (typeof minFee !== 'bigint' || minFee <= 0n)
+      throw new Error('Network minimum transaction fee is unavailable.');
+    const fee = (claim ? 8n : 7n) * minFee;
     if (sponsorBalance.amount < 100000n + fee) {
       const shortfall = 100000n + fee - sponsorBalance.amount;
-      throw new Error(`Settlement fee sponsor is underfunded by ${shortfall} microALGO. Top up sponsor ${sponsor.address().toString()} before retrying. No swap key was disclosed by this attempt.`);
+      throw new Error(
+        `Settlement fee sponsor is underfunded by ${shortfall} microALGO. Top up sponsor ${sponsor.address().toString()} before retrying. No swap key was disclosed by this attempt.`,
+      );
     }
-    if (!claim && minFee > 1000n) throw new Error('Network minimum fee exceeds the supported settlement fee.');
+    if (!claim && minFee > 1000n)
+      throw new Error('Network minimum fee exceeds the supported settlement fee.');
     const walletId = await resolveSwapWalletId(params.agreementDigest, secret);
     if (walletId === null) throw new Error('Swap key share is unavailable.');
     const material = await unlockMoneroWallet(secret, settings.monero.networkType, walletId);
-    if (!material || material.publicSpendKey !== publicSpendKey) throw new Error('Swap spend key does not match the agreement.');
+    if (!material || material.publicSpendKey !== publicSpendKey)
+      throw new Error('Swap spend key does not match the agreement.');
     const buildGroup = (signature: Uint8Array) => {
       const composer = new algosdk.AtomicTransactionComposer();
       const sponsorPayment = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-        sender: sponsor.address(), receiver: sender, amount: 0n, closeRemainderTo: sender,
+        sender: sponsor.address(),
+        receiver: sender,
+        amount: 0n,
+        closeRemainderTo: sender,
         suggestedParams: { ...suggestedParams, flatFee: true, fee: 0n },
       });
       composer.addMethodCall({
-        appID: appId, sender, onComplete: algosdk.OnApplicationComplete.DeleteApplicationOC,
-        method: algosdk.ABIMethod.fromSignature(claim ? 'leakyClaim(byte[],pay)void' : 'leakyRefund(byte[],pay)void'),
+        appID: appId,
+        sender,
+        onComplete: algosdk.OnApplicationComplete.DeleteApplicationOC,
+        method: algosdk.ABIMethod.fromSignature(
+          claim ? 'leakyClaim(byte[],pay)void' : 'leakyRefund(byte[],pay)void',
+        ),
         methodArgs: [signature, { txn: sponsorPayment, signer: async () => [] }],
         appAccounts: claim ? [TREASURY] : undefined,
-        suggestedParams: { ...suggestedParams, flatFee: true, fee }, signer: async () => [],
+        suggestedParams: { ...suggestedParams, flatFee: true, fee },
+        signer: async () => [],
       });
-      return composer.buildGroup().map(entry => entry.txn);
+      return composer.buildGroup().map((entry) => entry.txn);
     };
     const preview = buildGroup(new Uint8Array(64));
     assertSafeSigningRequest(preview, [1]);
@@ -115,8 +165,11 @@ export async function settleLeakSwap(params: SettleLeakSwapParams, secret: strin
     await assertActive();
     const scalar = hexToBytes(material.privateSpendKey);
     let signature: Uint8Array;
-    try { signature = leakySign(algosdk.getApplicationAddress(appId).publicKey, scalar); }
-    finally { scalar.fill(0); }
+    try {
+      signature = leakySign(algosdk.getApplicationAddress(appId).publicKey, scalar);
+    } finally {
+      scalar.fill(0);
+    }
     try {
       const group = buildGroup(signature);
       const txId = group[1].txID();
@@ -125,23 +178,43 @@ export async function settleLeakSwap(params: SettleLeakSwapParams, secret: strin
       await assertActive();
       const sponsorBlob = algosdk.signLogicSigTransactionObject(group[0], sponsor).blob;
       const simulation = new algosdk.modelsv2.SimulateRequest({
-        txnGroups: [new algosdk.modelsv2.SimulateRequestTransactionGroup({ txns: [
-          algosdk.decodeSignedTransaction(sponsorBlob), new algosdk.SignedTransaction({ txn: group[1] }),
-        ] })], allowEmptySignatures: true,
+        txnGroups: [
+          new algosdk.modelsv2.SimulateRequestTransactionGroup({
+            txns: [
+              algosdk.decodeSignedTransaction(sponsorBlob),
+              new algosdk.SignedTransaction({ txn: group[1] }),
+            ],
+          }),
+        ],
+        allowEmptySignatures: true,
       });
       let simulated;
-      try { simulated = (await algod.simulateTransactions(simulation).do()).txnGroups[0]; }
-      catch (error) {
-        console.error('Settlement simulation request failed', { txId, appId: params.appId, action: params.action }, error);
-        throw new Error(`Settlement simulation unavailable. Node: ${nodeRejectionDetail(error)} No Algorand transaction was signed. The node may have received the revealing signature. Reference: ${txId}`);
+      try {
+        simulated = (await algod.simulateTransactions(simulation).do()).txnGroups[0];
+      } catch (error) {
+        console.error(
+          'Settlement simulation request failed',
+          { txId, appId: params.appId, action: params.action },
+          error,
+        );
+        throw new Error(
+          `Settlement simulation unavailable. Node: ${nodeRejectionDetail(error)} No Algorand transaction was signed. The node may have received the revealing signature. Reference: ${txId}`,
+        );
       }
       if (!simulated || simulated.failureMessage) {
         console.error('Settlement simulation rejected', {
-          txId, appId: params.appId, action: params.action,
-          failureMessage: simulated?.failureMessage, failedAt: simulated?.failedAt,
+          txId,
+          appId: params.appId,
+          action: params.action,
+          failureMessage: simulated?.failureMessage,
+          failedAt: simulated?.failedAt,
         });
-        const location = simulated?.failedAt?.length ? ` Failure path (zero-based): ${simulated.failedAt.join(' > ')}.` : '';
-        throw new Error(`Settlement simulation rejected the group. Node: ${nodeRejectionDetail(simulated?.failureMessage)}${location} No Algorand transaction was signed. The node received the revealing signature. Reference: ${txId}`);
+        const location = simulated?.failedAt?.length
+          ? ` Failure path (zero-based): ${simulated.failedAt.join(' > ')}.`
+          : '';
+        throw new Error(
+          `Settlement simulation rejected the group. Node: ${nodeRejectionDetail(simulated?.failureMessage)}${location} No Algorand transaction was signed. The node received the revealing signature. Reference: ${txId}`,
+        );
       }
       await assertActive();
       const signed = await signRawTransactions(secret, 0, [unsigned]);
@@ -152,9 +225,17 @@ export async function settleLeakSwap(params: SettleLeakSwapParams, secret: strin
         if (!confirmed.confirmedRound) throw new Error('Unconfirmed');
         return { txId, confirmedRound: confirmed.confirmedRound.toString() };
       } catch (error) {
-        console.error('Settlement submission or confirmation failed', { txId, appId: params.appId, action: params.action }, error);
-        throw new Error(`Settlement submission or confirmation is uncertain. Node: ${nodeRejectionDetail(error)} Check this transaction before retrying: ${txId}. The swap key share has been disclosed to the node.`);
+        console.error(
+          'Settlement submission or confirmation failed',
+          { txId, appId: params.appId, action: params.action },
+          error,
+        );
+        throw new Error(
+          `Settlement submission or confirmation is uncertain. Node: ${nodeRejectionDetail(error)} Check this transaction before retrying: ${txId}. The swap key share has been disclosed to the node.`,
+        );
       }
-    } finally { signature.fill(0); }
+    } finally {
+      signature.fill(0);
+    }
   });
 }
