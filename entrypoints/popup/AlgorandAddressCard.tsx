@@ -42,7 +42,6 @@ function AlgorandAddressCard({
   const color = networkColor(network);
   const algod = settings.algorand.algod;
 
-
   // Balances are cached per `network:address` so revisiting an address (prev/next
   // or switching networks and back) shows the last known amount instantly, and
   // the value only refreshes in the background instead of flickering.
@@ -155,7 +154,10 @@ function AlgorandAddressCard({
           <p className="probe-error">{displayed.error}</p>
         ) : null}
 
-        <details className="address-details"><summary>Address details</summary><p className="hint">Derivation path: {derivationPath}</p></details>
+        <details className="address-details">
+          <summary>Address details</summary>
+          <p className="hint">Derivation path: {derivationPath}</p>
+        </details>
       </div>
     </>
   );

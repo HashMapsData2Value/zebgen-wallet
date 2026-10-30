@@ -55,7 +55,10 @@ import {
   type NetworkSettings,
 } from '../../lib/network/networks';
 import { getNetworkSettings, saveNetworkSettings } from '../../lib/network/networkStore';
-import { currentRestoreHeight, generatedWalletRestoreHeights } from '../../lib/monero/restoreHeight';
+import {
+  currentRestoreHeight,
+  generatedWalletRestoreHeights,
+} from '../../lib/monero/restoreHeight';
 import { sanitizeBlockHeight, walletRestoreHeight } from '../../lib/monero/scanHeight';
 import { recoverCombinedWallet } from '../../lib/wallet/combinedRecovery';
 import type { CombinedAddressContext } from '../../lib/wallet/combinedAddressContext';
@@ -513,7 +516,8 @@ function App({ variant = 'popup' }: AppProps) {
       }
       // A freshly generated wallet can't have funds from before now; an imported one might.
       const useCurrentHeight = moneroSetupMode === 'generate' || moneroHistory === 'unused';
-      if (!useCurrentHeight && !moneroScanStart) throw new Error('Choose a scan start height, or full history if you do not know it.');
+      if (!useCurrentHeight && !moneroScanStart)
+        throw new Error('Choose a scan start height, or full history if you do not know it.');
       const restoreHeight = useCurrentHeight
         ? await currentRestoreHeight(networkSettings.monero)
         : moneroScanStart === 'full'
@@ -1286,7 +1290,9 @@ function App({ variant = 'popup' }: AppProps) {
                           setMoneroScanStart(event.target.value as '' | 'full' | 'height')
                         }
                       >
-                        <option value="" disabled>Choose a scan start</option>
+                        <option value="" disabled>
+                          Choose a scan start
+                        </option>
                         <option value="full">I don't know: scan full history (block 0)</option>
                         <option value="height">Specific block height</option>
                       </select>
@@ -1304,7 +1310,11 @@ function App({ variant = 'popup' }: AppProps) {
                           />
                         </>
                       ) : null}
-                      <p className="hint">Use a block height from before this wallet first received funds on the selected network. A later height can miss deposits. If unsure, choose full history.</p>
+                      <p className="hint">
+                        Use a block height from before this wallet first received funds on the
+                        selected network. A later height can miss deposits. If unsure, choose full
+                        history.
+                      </p>
                     </>
                   ) : null}
                 </>

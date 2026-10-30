@@ -1,4 +1,7 @@
-import { privateKeyToMoneroMnemonic, moneroMnemonicToPrivateKey } from '../lib/wallet/moneroMnemonic.ts';
+import {
+  privateKeyToMoneroMnemonic,
+  moneroMnemonicToPrivateKey,
+} from '../lib/wallet/moneroMnemonic.ts';
 
 // Reference seeds produced by monero-ts 0.11.10 `createWalletKeys(...).getSeed()` (English).
 const vectors = [

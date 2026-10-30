@@ -19,7 +19,8 @@ export default function MoneroChainHeight({ config }: { config: MoneroNetworkCon
       checking = true;
       try {
         const result = await probeMoneroDaemonViaBackground(config);
-        if (!result.ok || result.height === undefined) throw new Error(result.error ?? 'No chain height returned.');
+        if (!result.ok || result.height === undefined)
+          throw new Error(result.error ?? 'No chain height returned.');
         if (active) {
           setHeight(result.height);
           setError(null);
@@ -36,13 +37,16 @@ export default function MoneroChainHeight({ config }: { config: MoneroNetworkCon
     }
     void checkHeight();
     const timer = window.setInterval(() => void checkHeight(), 5000);
-    return () => { active = false; window.clearInterval(timer); };
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
   }, [config, refresh]);
 
   async function refreshHeight() {
     try {
       await ensureHostPermissions([config.daemon.uri]);
-      setRefresh(value => value + 1);
+      setRefresh((value) => value + 1);
     } catch (failure) {
       console.error('Monero chain height permission failed', failure);
       setError(failure instanceof Error ? failure.message : String(failure));
@@ -52,13 +56,26 @@ export default function MoneroChainHeight({ config }: { config: MoneroNetworkCon
   return (
     <div>
       <div className="balance-row">
-        <span className="hint" role="status">Current chain height: {error ? 'Unavailable' : height === null ? 'Loading...' : height.toLocaleString()}</span>
-        <button type="button" className="secondary" title="Refresh chain height" aria-label="Refresh chain height" onClick={() => void refreshHeight()}>
+        <span className="hint" role="status">
+          Current chain height:{' '}
+          {error ? 'Unavailable' : height === null ? 'Loading...' : height.toLocaleString()}
+        </span>
+        <button
+          type="button"
+          className="secondary"
+          title="Refresh chain height"
+          aria-label="Refresh chain height"
+          onClick={() => void refreshHeight()}
+        >
           <RefreshCw size={16} />
           Check height
         </button>
       </div>
-      {error ? <p className="error" role="alert">{error}</p> : null}
+      {error ? (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

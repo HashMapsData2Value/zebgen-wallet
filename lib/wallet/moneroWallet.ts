@@ -55,7 +55,7 @@ export function getPublicKeyFromPrivateScalar(privateScalarHex: string): string 
 export function getCompleteAddressFromPrivate(
   privateSpendKey: string,
   privateViewKey: string,
-  networkType: MoneroNetworkType = MoneroNetworkType.MAINNET
+  networkType: MoneroNetworkType = MoneroNetworkType.MAINNET,
 ): string {
   const publicSpendKey = hexToBytes(getPublicKeyFromPrivateScalar(privateSpendKey));
   const publicViewKey = hexToBytes(getPublicKeyFromPrivateScalar(privateViewKey));
@@ -63,7 +63,7 @@ export function getCompleteAddressFromPrivate(
 }
 
 export function generateMoneroKeyMaterial(
-  networkType: MoneroNetworkType = MoneroNetworkType.MAINNET
+  networkType: MoneroNetworkType = MoneroNetworkType.MAINNET,
 ): MoneroKeyMaterial {
   const privateSpendKey = genPrivateSpendKey();
   return getMoneroKeyMaterialFromPrivateSpendKey(privateSpendKey, networkType);
@@ -71,7 +71,7 @@ export function generateMoneroKeyMaterial(
 
 export function getMoneroKeyMaterialFromPrivateSpendKey(
   privateSpendKeyHex: string,
-  networkType: MoneroNetworkType = MoneroNetworkType.MAINNET
+  networkType: MoneroNetworkType = MoneroNetworkType.MAINNET,
 ): MoneroKeyMaterial {
   const privateSpendKey = bytesToHex(bigIntToLe32(privateScalarHexToBigInt(privateSpendKeyHex)));
   const privateViewKey = genPrivateViewKey(privateSpendKey);
@@ -97,7 +97,7 @@ export function createSwapSharePayload(privateSpendKey: string): MoneroSharePayl
 
 export function combinePrivateSpendKeys(
   privateSpendKeyA: string,
-  privateSpendKeyB: string
+  privateSpendKeyB: string,
 ): string {
   const a = privateScalarHexToBigInt(privateSpendKeyA);
   const b = privateScalarHexToBigInt(privateSpendKeyB);
@@ -107,12 +107,12 @@ export function combinePrivateSpendKeys(
 export function combineMoneroKeyMaterialFromPrivateSpendKeys(
   privateSpendKeyA: string,
   privateSpendKeyB: string,
-  networkType: MoneroNetworkType = MoneroNetworkType.MAINNET
+  networkType: MoneroNetworkType = MoneroNetworkType.MAINNET,
 ): MoneroKeyMaterial {
   const privateSpendKey = combinePrivateSpendKeys(privateSpendKeyA, privateSpendKeyB);
   const privateViewKey = combinePrivateSpendKeys(
     genPrivateViewKey(privateSpendKeyA),
-    genPrivateViewKey(privateSpendKeyB)
+    genPrivateViewKey(privateSpendKeyB),
   );
   const publicSpendKey = getPublicKeyFromPrivateScalar(privateSpendKey);
   const publicViewKey = getPublicKeyFromPrivateScalar(privateViewKey);
@@ -131,7 +131,7 @@ export function computeCombinedAddressWithPrivateAndPublic(
   myPrivateViewKey: string,
   theirPrivateViewKey: string,
   theirPublicSpendKey: string,
-  networkType: MoneroNetworkType = MoneroNetworkType.MAINNET
+  networkType: MoneroNetworkType = MoneroNetworkType.MAINNET,
 ): CombinedMoneroAddressResult {
   const myPublicSpendKey = hexToBytes(getPublicKeyFromPrivateScalar(myPrivateSpendKey));
   const myPublicViewKey = hexToBytes(getPublicKeyFromPrivateScalar(myPrivateViewKey));
@@ -139,10 +139,10 @@ export function computeCombinedAddressWithPrivateAndPublic(
   const theirPublicSpendKeyBytes = hexToBytes(theirPublicSpendKey);
 
   const combinedPublicSpendKeyPoint = ed25519.Point.fromHex(bytesToHex(myPublicSpendKey)).add(
-    ed25519.Point.fromHex(bytesToHex(theirPublicSpendKeyBytes))
+    ed25519.Point.fromHex(bytesToHex(theirPublicSpendKeyBytes)),
   );
   const combinedPublicViewKeyPoint = ed25519.Point.fromHex(bytesToHex(myPublicViewKey)).add(
-    ed25519.Point.fromHex(bytesToHex(theirPublicViewKey))
+    ed25519.Point.fromHex(bytesToHex(theirPublicViewKey)),
   );
 
   const combinedPublicSpendKey = bytesToHex(combinedPublicSpendKeyPoint.toBytes());
@@ -154,7 +154,7 @@ export function computeCombinedAddressWithPrivateAndPublic(
     combinedAddress: getCompleteAddressFromPublic(
       hexToBytes(combinedPublicSpendKey),
       hexToBytes(combinedPublicViewKey),
-      networkType
+      networkType,
     ),
   };
 }
@@ -164,13 +164,13 @@ export function computeCombinedAddressFromPublicKeys(
   publicViewKeyA: string,
   publicSpendKeyB: string,
   publicViewKeyB: string,
-  networkType: MoneroNetworkType = MoneroNetworkType.MAINNET
+  networkType: MoneroNetworkType = MoneroNetworkType.MAINNET,
 ): CombinedMoneroAddressResult {
   const combinedPublicSpendKeyPoint = ed25519.Point.fromHex(publicSpendKeyA).add(
-    ed25519.Point.fromHex(publicSpendKeyB)
+    ed25519.Point.fromHex(publicSpendKeyB),
   );
   const combinedPublicViewKeyPoint = ed25519.Point.fromHex(publicViewKeyA).add(
-    ed25519.Point.fromHex(publicViewKeyB)
+    ed25519.Point.fromHex(publicViewKeyB),
   );
 
   const combinedPublicSpendKey = bytesToHex(combinedPublicSpendKeyPoint.toBytes());
@@ -182,7 +182,7 @@ export function computeCombinedAddressFromPublicKeys(
     combinedAddress: getCompleteAddressFromPublic(
       hexToBytes(combinedPublicSpendKey),
       hexToBytes(combinedPublicViewKey),
-      networkType
+      networkType,
     ),
   };
 }
@@ -190,7 +190,7 @@ export function computeCombinedAddressFromPublicKeys(
 function getCompleteAddressFromPublic(
   publicSpendKey: Uint8Array,
   publicViewKey: Uint8Array,
-  networkType: MoneroNetworkType
+  networkType: MoneroNetworkType,
 ): string {
   const prefix = getNetworkPrefix(networkType);
   const addressBytes = new Uint8Array(prefix.length + publicSpendKey.length + publicViewKey.length);

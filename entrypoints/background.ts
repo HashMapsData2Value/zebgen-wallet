@@ -54,7 +54,8 @@ export default defineBackground(() => {
         viewers.get(key)?.delete(viewer);
       }
     }
-    void browser.runtime.sendMessage({ type: 'monero:scanDisplay', states: jobs.states })
+    void browser.runtime
+      .sendMessage({ type: 'monero:scanDisplay', states: jobs.states })
       .catch((error) => console.error('Scan display notification failed', error));
   });
   let hostReady: (() => void) | undefined;
@@ -90,9 +91,12 @@ export default defineBackground(() => {
   browser.runtime.onConnect.addListener((port) => {
     if (port.name !== 'monero:balanceScan') return;
     const sender = port.sender;
-    if (sender?.id !== browser.runtime.id ||
-      !(['/popup.html', '/dashboard.html'] as const).some((path) =>
-        sender.url?.split(/[?#]/)[0] === browser.runtime.getURL(path))) {
+    if (
+      sender?.id !== browser.runtime.id ||
+      !(['/popup.html', '/dashboard.html'] as const).some(
+        (path) => sender.url?.split(/[?#]/)[0] === browser.runtime.getURL(path),
+      )
+    ) {
       port.disconnect();
       return;
     }

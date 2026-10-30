@@ -13,22 +13,37 @@ export function assertProviderSender(
     throw new Error('Provider requests must come from a browser page.');
   }
   const url = new URL(sender.url);
-  if (!['https:', 'http:'].includes(url.protocol) || claimedOrigin !== url.origin
-    || (sender.origin !== undefined && sender.origin !== url.origin)) {
+  if (
+    !['https:', 'http:'].includes(url.protocol) ||
+    claimedOrigin !== url.origin ||
+    (sender.origin !== undefined && sender.origin !== url.origin)
+  ) {
     throw new Error('Provider origin does not match the sending page.');
   }
 }
 
 // These calls would otherwise hand a page the normal wallet's keys (spend key via a leaky signature, view key via share info and scans).
-const AGREEMENT_ONLY_REQUESTS = new Set(['computeMoneroLeakySignature', 'getMoneroShareInfo', 'computeCombinedMoneroAddress', 'scanCombinedMoneroFunding']);
+const AGREEMENT_ONLY_REQUESTS = new Set([
+  'computeMoneroLeakySignature',
+  'getMoneroShareInfo',
+  'computeCombinedMoneroAddress',
+  'scanCombinedMoneroFunding',
+]);
 
 export function assertAgreementBound(type: string, params: unknown): void {
-  if (type === 'computeMoneroLeakySignature' && (params as { agreementDigest?: unknown } | null)?.agreementDigest !== undefined) {
-    throw new Error('Agreement settlements must use settleLeakSwap; revealing signatures are not exported.');
+  if (
+    type === 'computeMoneroLeakySignature' &&
+    (params as { agreementDigest?: unknown } | null)?.agreementDigest !== undefined
+  ) {
+    throw new Error(
+      'Agreement settlements must use settleLeakSwap; revealing signatures are not exported.',
+    );
   }
   if (!AGREEMENT_ONLY_REQUESTS.has(type)) return;
   const digest = (params as { agreementDigest?: unknown } | null)?.agreementDigest;
   if (typeof digest !== 'string' || !/^[0-9a-f]{64}$/.test(digest)) {
-    throw new Error('This request is only available for a saved swap agreement. Accept the swap invitation in Zebgen first.');
+    throw new Error(
+      'This request is only available for a saved swap agreement. Accept the swap invitation in Zebgen first.',
+    );
   }
 }

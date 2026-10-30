@@ -11,12 +11,22 @@ test('scan display cannot invoke privileged background APIs or open scan-start p
   const runtime = {
     id: 'test',
     getURL: (path) => `chrome-extension://test${path}`,
-    onConnect: { addListener: (listener) => { connectListener = listener; } },
-    onMessage: { addListener: (listener) => { messageListener = listener; } },
+    onConnect: {
+      addListener: (listener) => {
+        connectListener = listener;
+      },
+    },
+    onMessage: {
+      addListener: (listener) => {
+        messageListener = listener;
+      },
+    },
   };
   class ScanJobs {
     states = [];
-    stop(key) { calls.push(['stop', key]); }
+    stop(key) {
+      calls.push(['stop', key]);
+    }
   }
   const compiled = ts.transpileModule(
     readFileSync(new URL('../entrypoints/background.ts', import.meta.url), 'utf8'),
@@ -29,10 +39,17 @@ test('scan display cannot invoke privileged background APIs or open scan-start p
     require: (name) => {
       if (name === 'wxt/browser') return { browser: { runtime } };
       if (name === '../lib/monero/scanJobs') return { ScanJobs };
-      return new Proxy({}, { get: (_target, property) => (...args) => {
-        calls.push([property, ...args]);
-        throw new Error(`Unexpected privileged call: ${String(property)}`);
-      } });
+      return new Proxy(
+        {},
+        {
+          get:
+            (_target, property) =>
+            (...args) => {
+              calls.push([property, ...args]);
+              throw new Error(`Unexpected privileged call: ${String(property)}`);
+            },
+        },
+      );
     },
   });
   const denied = [
@@ -46,10 +63,19 @@ test('scan display cannot invoke privileged background APIs or open scan-start p
   for (const suffix of ['', '?test', '#test']) {
     const sender = { id: 'test', url: `chrome-extension://test/scan.html${suffix}` };
     for (const message of denied) {
-      assert.equal(messageListener(message, sender, () => assert.fail('Denied request responded')), false);
+      assert.equal(
+        messageListener(message, sender, () => assert.fail('Denied request responded')),
+        false,
+      );
     }
     let disconnected = false;
-    connectListener({ name: 'monero:balanceScan', sender, disconnect: () => { disconnected = true; } });
+    connectListener({
+      name: 'monero:balanceScan',
+      sender,
+      disconnect: () => {
+        disconnected = true;
+      },
+    });
     assert.equal(disconnected, true);
   }
   assert.equal(calls.length, 0);

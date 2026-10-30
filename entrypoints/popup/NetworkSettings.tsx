@@ -70,8 +70,11 @@ function NetworkSettingsPanel({ chain, settings, onChange }: NetworkSettingsPane
     const result = await probeAlgod(settings.algorand.algod, settings.algorand.network);
     setAlgodProbe(
       result.ok
-        ? { status: 'ok', message: `${networkLabel(result.network ?? '')} · ${result.genesisId} · last round ${result.lastRound}` }
-        : { status: 'error', message: result.error ?? 'Connection failed.' }
+        ? {
+            status: 'ok',
+            message: `${networkLabel(result.network ?? '')} · ${result.genesisId} · last round ${result.lastRound}`,
+          }
+        : { status: 'error', message: result.error ?? 'Connection failed.' },
     );
   }
 
@@ -80,14 +83,17 @@ function NetworkSettingsPanel({ chain, settings, onChange }: NetworkSettingsPane
     try {
       await ensureHostPermissions([settings.algorand.indexer.server]);
     } catch (err) {
-      setIndexerProbe({ status: 'error', message: err instanceof Error ? err.message : String(err) });
+      setIndexerProbe({
+        status: 'error',
+        message: err instanceof Error ? err.message : String(err),
+      });
       return;
     }
     const result = await probeIndexer(settings.algorand.indexer);
     setIndexerProbe(
       result.ok
         ? { status: 'ok', message: `Connected · round ${result.round}` }
-        : { status: 'error', message: result.error ?? 'Connection failed.' }
+        : { status: 'error', message: result.error ?? 'Connection failed.' },
     );
   }
 
@@ -98,8 +104,11 @@ function NetworkSettingsPanel({ chain, settings, onChange }: NetworkSettingsPane
       const result = await probeMoneroDaemonViaBackground(settings.monero);
       setDaemonProbe(
         result.ok
-          ? { status: 'ok', message: `${networkLabel(result.network ?? '')} · height ${result.height}` }
-          : { status: 'error', message: result.error ?? 'Connection failed.' }
+          ? {
+              status: 'ok',
+              message: `${networkLabel(result.network ?? '')} · height ${result.height}`,
+            }
+          : { status: 'error', message: result.error ?? 'Connection failed.' },
       );
     } catch (err) {
       setDaemonProbe({
@@ -141,7 +150,9 @@ function NetworkSettingsPanel({ chain, settings, onChange }: NetworkSettingsPane
         <label className="net-label">Server</label>
         <input
           value={algorand.algod.server}
-          onChange={(event) => update((draft) => void (draft.algorand.algod.server = event.target.value))}
+          onChange={(event) =>
+            update((draft) => void (draft.algorand.algod.server = event.target.value))
+          }
           placeholder="https://host or http://localhost"
         />
         <div className="net-row">
@@ -149,7 +160,9 @@ function NetworkSettingsPanel({ chain, settings, onChange }: NetworkSettingsPane
             <label className="net-label">Port</label>
             <input
               value={algorand.algod.port === '' ? '' : String(algorand.algod.port)}
-              onChange={(event) => update((draft) => void (draft.algorand.algod.port = parsePort(event.target.value)))}
+              onChange={(event) =>
+                update((draft) => void (draft.algorand.algod.port = parsePort(event.target.value)))
+              }
               placeholder="4001"
               inputMode="numeric"
             />
@@ -158,12 +171,19 @@ function NetworkSettingsPanel({ chain, settings, onChange }: NetworkSettingsPane
             <label className="net-label">Token</label>
             <input
               value={algorand.algod.token}
-              onChange={(event) => update((draft) => void (draft.algorand.algod.token = event.target.value))}
+              onChange={(event) =>
+                update((draft) => void (draft.algorand.algod.token = event.target.value))
+              }
               placeholder="API token"
             />
           </div>
         </div>
-        <button type="button" className="secondary" onClick={onTestAlgod} disabled={algodProbe.status === 'testing'}>
+        <button
+          type="button"
+          className="secondary"
+          onClick={onTestAlgod}
+          disabled={algodProbe.status === 'testing'}
+        >
           {algodProbe.status === 'testing' ? 'Testing...' : 'Test Algod'}
         </button>
         {algodProbe.status === 'ok' ? <p className="probe-ok">{algodProbe.message}</p> : null}
@@ -173,7 +193,9 @@ function NetworkSettingsPanel({ chain, settings, onChange }: NetworkSettingsPane
         <label className="net-label">Server</label>
         <input
           value={algorand.indexer.server}
-          onChange={(event) => update((draft) => void (draft.algorand.indexer.server = event.target.value))}
+          onChange={(event) =>
+            update((draft) => void (draft.algorand.indexer.server = event.target.value))
+          }
           placeholder="https://host or http://localhost"
         />
         <div className="net-row">
@@ -181,7 +203,11 @@ function NetworkSettingsPanel({ chain, settings, onChange }: NetworkSettingsPane
             <label className="net-label">Port</label>
             <input
               value={algorand.indexer.port === '' ? '' : String(algorand.indexer.port)}
-              onChange={(event) => update((draft) => void (draft.algorand.indexer.port = parsePort(event.target.value)))}
+              onChange={(event) =>
+                update(
+                  (draft) => void (draft.algorand.indexer.port = parsePort(event.target.value)),
+                )
+              }
               placeholder="8980"
               inputMode="numeric"
             />
@@ -190,16 +216,25 @@ function NetworkSettingsPanel({ chain, settings, onChange }: NetworkSettingsPane
             <label className="net-label">Token</label>
             <input
               value={algorand.indexer.token}
-              onChange={(event) => update((draft) => void (draft.algorand.indexer.token = event.target.value))}
+              onChange={(event) =>
+                update((draft) => void (draft.algorand.indexer.token = event.target.value))
+              }
               placeholder="API token"
             />
           </div>
         </div>
-        <button type="button" className="secondary" onClick={onTestIndexer} disabled={indexerProbe.status === 'testing'}>
+        <button
+          type="button"
+          className="secondary"
+          onClick={onTestIndexer}
+          disabled={indexerProbe.status === 'testing'}
+        >
           {indexerProbe.status === 'testing' ? 'Testing...' : 'Test Indexer'}
         </button>
         {indexerProbe.status === 'ok' ? <p className="probe-ok">{indexerProbe.message}</p> : null}
-        {indexerProbe.status === 'error' ? <p className="probe-error">{indexerProbe.message}</p> : null}
+        {indexerProbe.status === 'error' ? (
+          <p className="probe-error">{indexerProbe.message}</p>
+        ) : null}
       </section>
     );
   }
@@ -221,7 +256,11 @@ function NetworkSettingsPanel({ chain, settings, onChange }: NetworkSettingsPane
         ))}
       </div>
 
-      {monero.network === 'regtest' ? <p className="privacy-notice">Local simulated chain. Test coins only. Addresses use mainnet encoding.</p> : null}
+      {monero.network === 'regtest' ? (
+        <p className="privacy-notice">
+          Local simulated chain. Test coins only. Addresses use mainnet encoding.
+        </p>
+      ) : null}
       <p className="net-subheading">Daemon RPC</p>
       <p className="hint net-hint">
         Connect to your own local Monero node, or use the node provided with the wallet. Routing
@@ -240,7 +279,9 @@ function NetworkSettingsPanel({ chain, settings, onChange }: NetworkSettingsPane
           <label className="net-label">Username (optional)</label>
           <input
             value={monero.daemon.username ?? ''}
-            onChange={(event) => update((draft) => void (draft.monero.daemon.username = event.target.value))}
+            onChange={(event) =>
+              update((draft) => void (draft.monero.daemon.username = event.target.value))
+            }
             placeholder="rpc user"
           />
         </div>
@@ -249,12 +290,19 @@ function NetworkSettingsPanel({ chain, settings, onChange }: NetworkSettingsPane
           <input
             type="password"
             value={monero.daemon.password ?? ''}
-            onChange={(event) => update((draft) => void (draft.monero.daemon.password = event.target.value))}
+            onChange={(event) =>
+              update((draft) => void (draft.monero.daemon.password = event.target.value))
+            }
             placeholder="rpc password"
           />
         </div>
       </div>
-      <button type="button" className="secondary" onClick={onTestDaemon} disabled={daemonProbe.status === 'testing'}>
+      <button
+        type="button"
+        className="secondary"
+        onClick={onTestDaemon}
+        disabled={daemonProbe.status === 'testing'}
+      >
         {daemonProbe.status === 'testing' ? 'Testing...' : 'Test Daemon'}
       </button>
       {daemonProbe.status === 'ok' ? <p className="probe-ok">{daemonProbe.message}</p> : null}

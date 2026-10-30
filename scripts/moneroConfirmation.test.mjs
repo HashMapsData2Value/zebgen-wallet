@@ -8,12 +8,19 @@ import * as jsx from 'react/jsx-runtime';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 const api = {};
-runInNewContext(ts.transpileModule(readFileSync(new URL('../entrypoints/popup/MoneroConfirmation.tsx', import.meta.url), 'utf8'), {
-  compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
-}).outputText, { exports: api, require: () => jsx });
+runInNewContext(
+  ts.transpileModule(
+    readFileSync(new URL('../entrypoints/popup/MoneroConfirmation.tsx', import.meta.url), 'utf8'),
+    {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
+    },
+  ).outputText,
+  { exports: api, require: () => jsx },
+);
 
 test('receipt distinguishes pool wait, regtest mining, normal maturity and unknown outcomes', () => {
-  const render = (network, status) => renderToStaticMarkup(react.createElement(api.default, { network, status }));
+  const render = (network, status) =>
+    renderToStaticMarkup(react.createElement(api.default, { network, status }));
   assert.match(render('regtest', { state: 'pool' }), /Waiting for a miner/);
   assert.match(render('regtest', { state: 'pool' }), /Waiting alone will not confirm/);
   assert.doesNotMatch(render('regtest', { state: 'pool' }), /20 minutes/);

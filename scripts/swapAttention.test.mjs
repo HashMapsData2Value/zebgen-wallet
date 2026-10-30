@@ -1,12 +1,22 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { swapAttention, refundDecisionMargin, deadlineRemaining } from '../../leakswap-all/leakswap-protocol/leakswap-utils/src/swapAttention.ts';
+import {
+  swapAttention,
+  refundDecisionMargin,
+  deadlineRemaining,
+} from '../../leakswap-all/leakswap-protocol/leakswap-utils/src/swapAttention.ts';
 
 test('round attention uses round margins and explicitly estimated countdowns', () => {
   assert.equal(refundDecisionMargin(10000, 12400, 'round'), 600);
   assert.equal(swapAttention('ali', 10000, 12400, 9399, 'awaiting', 'round').priority, 1);
-  assert.equal(swapAttention('ali', 10000, 12400, 9400, 'awaiting', 'round').title, 'Refund decision due');
-  assert.match(deadlineRemaining(11200, 10000, 'round'), /1200 rounds remaining.*54-60 min estimated/);
+  assert.equal(
+    swapAttention('ali', 10000, 12400, 9400, 'awaiting', 'round').title,
+    'Refund decision due',
+  );
+  assert.match(
+    deadlineRemaining(11200, 10000, 'round'),
+    /1200 rounds remaining.*54-60 min estimated/,
+  );
 });
 
 test('preset margins and custom heuristic match decision guidance', () => {
@@ -19,11 +29,26 @@ test('preset margins and custom heuristic match decision guidance', () => {
 
 test('decision and deadline boundaries preserve inclusive refund and exclusive final claim', () => {
   assert.equal(swapAttention('ali', 10000, 17200, 8799, 'awaiting', 'round').priority, 1);
-  assert.equal(swapAttention('ali', 10000, 17200, 8800, 'awaiting', 'round').title, 'Refund decision due');
-  assert.equal(swapAttention('ali', 10000, 17200, 10000, 'awaiting', 'round').title, 'Refund decision due');
-  assert.equal(swapAttention('ali', 10000, 17200, 10001, 'awaiting', 'round').title, 'Xin can claim');
-  assert.equal(swapAttention('xin', 10000, 17200, 17199, 'ready', 'round').title, 'Claim needs attention');
-  assert.equal(swapAttention('xin', 10000, 17200, 17200, 'ready', 'round').title, 'Claim window may have closed');
+  assert.equal(
+    swapAttention('ali', 10000, 17200, 8800, 'awaiting', 'round').title,
+    'Refund decision due',
+  );
+  assert.equal(
+    swapAttention('ali', 10000, 17200, 10000, 'awaiting', 'round').title,
+    'Refund decision due',
+  );
+  assert.equal(
+    swapAttention('ali', 10000, 17200, 10001, 'awaiting', 'round').title,
+    'Xin can claim',
+  );
+  assert.equal(
+    swapAttention('xin', 10000, 17200, 17199, 'ready', 'round').title,
+    'Claim needs attention',
+  );
+  assert.equal(
+    swapAttention('xin', 10000, 17200, 17200, 'ready', 'round').title,
+    'Claim window may have closed',
+  );
 });
 
 test('unknown or unavailable apps never assert refund eligibility or confirmed settlement', () => {

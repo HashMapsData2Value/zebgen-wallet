@@ -17,20 +17,29 @@ test('Algo-only wallet can select and persist Stagenet without creating a Monero
       ignoreDefaultArgs: ['--disable-extensions'],
       args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`],
     });
-    const worker = context.serviceWorkers()[0] ?? await context.waitForEvent('serviceworker');
+    const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'));
     const page = await context.newPage();
-    page.on('pageerror', error => errors.push(error.message));
+    page.on('pageerror', (error) => errors.push(error.message));
     await page.goto(`chrome-extension://${new URL(worker.url()).host}/dashboard.html`);
     return page;
   }
   async function settings(page) {
-    await page.locator('.header-actions').getByRole('button', { name: 'Network settings', exact: true }).click();
+    await page
+      .locator('.header-actions')
+      .getByRole('button', { name: 'Network settings', exact: true })
+      .click();
   }
   async function assertNetworks(page, monero) {
-    await page.getByRole('group', { name: 'Algorand network', exact: true })
-      .locator('button.net-tab-active').filter({ hasText: /^testnet$/ }).waitFor();
-    await page.getByRole('group', { name: 'Monero network', exact: true })
-      .locator('button.net-tab-active').filter({ hasText: new RegExp(`^${monero}$`, 'i') }).waitFor();
+    await page
+      .getByRole('group', { name: 'Algorand network', exact: true })
+      .locator('button.net-tab-active')
+      .filter({ hasText: /^testnet$/ })
+      .waitFor();
+    await page
+      .getByRole('group', { name: 'Monero network', exact: true })
+      .locator('button.net-tab-active')
+      .filter({ hasText: new RegExp(`^${monero}$`, 'i') })
+      .waitFor();
   }
   try {
     let page = await launch();
@@ -42,11 +51,15 @@ test('Algo-only wallet can select and persist Stagenet without creating a Monero
     await page.locator('p.address[title]').waitFor();
     await settings(page);
     await assertNetworks(page, 'stagenet');
-    await page.getByRole('group', { name: 'Monero network', exact: true })
-      .getByRole('button', { name: /^mainnet$/i }).click();
+    await page
+      .getByRole('group', { name: 'Monero network', exact: true })
+      .getByRole('button', { name: /^mainnet$/i })
+      .click();
     await assertNetworks(page, 'mainnet');
-    await page.getByRole('group', { name: 'Monero network', exact: true })
-      .getByRole('button', { name: /^stagenet$/i }).click();
+    await page
+      .getByRole('group', { name: 'Monero network', exact: true })
+      .getByRole('button', { name: /^stagenet$/i })
+      .click();
     await assertNetworks(page, 'stagenet');
     for (const width of [360, 1000]) {
       await page.setViewportSize({ width, height: 800 });
@@ -61,8 +74,10 @@ test('Algo-only wallet can select and persist Stagenet without creating a Monero
     await settings(page);
     await assertNetworks(page, 'stagenet');
     await page.getByRole('button', { name: 'Back', exact: true }).click();
-    await page.getByRole('navigation', { name: 'Wallet navigation' })
-      .getByRole('button', { name: 'Monero', exact: true }).click();
+    await page
+      .getByRole('navigation', { name: 'Wallet navigation' })
+      .getByRole('button', { name: 'Monero', exact: true })
+      .click();
     await page.getByRole('button', { name: 'Generate mnemonic', exact: true }).waitFor();
     assert.equal(await page.getByRole('button', { name: 'Send XMR', exact: true }).count(), 0);
     assert.deepEqual(errors, []);

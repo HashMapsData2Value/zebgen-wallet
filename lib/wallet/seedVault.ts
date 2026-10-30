@@ -2,9 +2,7 @@
 const PBKDF2_ITERATIONS = 600_000;
 
 function asArrayBufferView(bytes: Uint8Array): Uint8Array {
-  return new Uint8Array(
-    bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
-  );
+  return new Uint8Array(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
 }
 
 export async function deriveAesKeyFromPassword(password: string, salt: Uint8Array) {
@@ -14,7 +12,7 @@ export async function deriveAesKeyFromPassword(password: string, salt: Uint8Arra
     new TextEncoder().encode(password),
     'PBKDF2',
     false,
-    ['deriveKey']
+    ['deriveKey'],
   );
 
   return crypto.subtle.deriveKey(
@@ -27,7 +25,7 @@ export async function deriveAesKeyFromPassword(password: string, salt: Uint8Arra
     keyMaterial,
     { name: 'AES-GCM', length: 256 },
     false,
-    ['encrypt', 'decrypt']
+    ['encrypt', 'decrypt'],
   );
 }
 
@@ -40,7 +38,7 @@ export async function encryptSeed(seedBytes: Uint8Array, password: string) {
   const encryptedSeed = await crypto.subtle.encrypt(
     { name: 'AES-GCM', iv: iv as BufferSource },
     key,
-    safeSeedBytes as BufferSource
+    safeSeedBytes as BufferSource,
   );
 
   return { encryptedSeed, salt, iv };
@@ -50,14 +48,14 @@ export async function decryptSeed(
   encryptedSeed: ArrayBuffer,
   password: string,
   salt: Uint8Array,
-  iv: Uint8Array
+  iv: Uint8Array,
 ) {
   const safeIv = asArrayBufferView(iv);
   const key = await deriveAesKeyFromPassword(password, salt);
   const decrypted = await crypto.subtle.decrypt(
     { name: 'AES-GCM', iv: safeIv as BufferSource },
     key,
-    encryptedSeed
+    encryptedSeed,
   );
 
   return new Uint8Array(decrypted);
@@ -69,7 +67,7 @@ export async function deriveLockVerifier(secret: string, salt: Uint8Array) {
     new TextEncoder().encode(secret),
     'PBKDF2',
     false,
-    ['deriveBits']
+    ['deriveBits'],
   );
 
   const bits = await crypto.subtle.deriveBits(
@@ -80,7 +78,7 @@ export async function deriveLockVerifier(secret: string, salt: Uint8Array) {
       hash: 'SHA-256',
     },
     keyMaterial,
-    256
+    256,
   );
 
   return new Uint8Array(bits);

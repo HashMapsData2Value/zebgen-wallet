@@ -139,7 +139,11 @@ function RevealSeedPhrase() {
           Hide
         </button>
       </div>
-      {error ? <p className="error" role="alert">{error}</p> : null}
+      {error ? (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

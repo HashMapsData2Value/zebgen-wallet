@@ -30,18 +30,20 @@ function MoneroKeyList({ material, includeSecrets = false }: MoneroKeyListProps)
 
   return (
     <div className="mono-key-list">
-      {rows.filter((row) => includeSecrets || !row.secret).map((row) => (
-        <div key={row.label} className={`mono-key-row${row.secret ? ' mono-key-secret' : ''}`}>
-          <span className="mono-key-label">
-            {row.label}
-            {row.secret ? <span className="mono-key-tag">secret</span> : null}
-          </span>
-          <code className="mono-key-value" title={row.value}>
-            {truncateMiddle(row.value)}
-          </code>
-          <CopyValue value={row.value} label={row.label.toLowerCase()} />
-        </div>
-      ))}
+      {rows
+        .filter((row) => includeSecrets || !row.secret)
+        .map((row) => (
+          <div key={row.label} className={`mono-key-row${row.secret ? ' mono-key-secret' : ''}`}>
+            <span className="mono-key-label">
+              {row.label}
+              {row.secret ? <span className="mono-key-tag">secret</span> : null}
+            </span>
+            <code className="mono-key-value" title={row.value}>
+              {truncateMiddle(row.value)}
+            </code>
+            <CopyValue value={row.value} label={row.label.toLowerCase()} />
+          </div>
+        ))}
     </div>
   );
 }

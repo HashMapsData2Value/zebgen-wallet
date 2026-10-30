@@ -32,7 +32,8 @@ const deadline = 2500;
 const agreement = {
   offer: {
     payload: {
-      deadlineUnit: 'round', createdRound: 1,
+      deadlineUnit: 'round',
+      createdRound: 1,
       algoGenesisHash: Buffer.from(genesisHash).toString('base64'),
       moneroNetwork: 'regtest',
       aliAlgoAddress: ali.addr.toString(),
@@ -112,7 +113,9 @@ function harness(locksAvailable = true, fixtureAgreement = agreement, onChainPro
       do: async () => ({ block: { header: { timestamp: Math.floor(Date.now() / 1000) } } }),
     }),
     getTransactionParams: () => ({ do: async () => ({ genesisHash, genesisID: 'mock' }) }),
-    getApplicationByID: () => ({ do: async () => ({ params: { ...onChainPrograms, globalState: globals } }) }),
+    getApplicationByID: () => ({
+      do: async () => ({ params: { ...onChainPrograms, globalState: globals } }),
+    }),
     accountInformation: () => ({ do: async () => ({ amount: 0n }) }),
   };
   const modules = {
@@ -164,7 +167,9 @@ function harness(locksAvailable = true, fixtureAgreement = agreement, onChainPro
     'leakswap-utils/dist/swapTiming.js': roundTiming,
     './swapAgreementTransactions': transactions,
     './swapAgreementArtifact': {
-      assertAgreementPrograms: (...args) => { if (onChainPrograms) artifactApi.assertAgreementPrograms(...args); },
+      assertAgreementPrograms: (...args) => {
+        if (onChainPrograms) artifactApi.assertAgreementPrograms(...args);
+      },
       agreementSponsorAddress: () => xin.addr.toString(),
       agreementSponsorLogicSig: () => new algosdk.LogicSigAccount(new Uint8Array([6, 129, 1])),
     },
@@ -316,7 +321,12 @@ test('confirmed journal settlement is restored and saved without consulting the 
   );
   assert.equal(vault.saved[0].settlement.confirmedRound, '5');
   await vault.api.saveVerifiedLeakSwap(
-    { appId: '42', agreementDigest: digest, combinedAddress: 'mock-combined', settlementTxId: transaction.txID() },
+    {
+      appId: '42',
+      agreementDigest: digest,
+      combinedAddress: 'mock-combined',
+      settlementTxId: transaction.txID(),
+    },
     'secret',
   );
   assert.equal(vault.saved.at(-1).settlement.txId, transaction.txID());
@@ -650,7 +660,9 @@ test('atomic ALGO funding enforces the node round boundary and fails closed on m
   const request = fundingRequest();
   let round = deadline - 1200;
   vault.algod.status = () => ({ do: async () => ({ lastRound: round }) });
-  vault.algod.block = () => { throw new Error('Round-based funding must not fetch timestamps.'); };
+  vault.algod.block = () => {
+    throw new Error('Round-based funding must not fetch timestamps.');
+  };
   await vault.api.validateAgreementSigning(request, 'secret');
   round++;
   await assert.rejects(
@@ -708,7 +720,10 @@ test('saved legacy agreement identity prevents redeployment and a second app bin
 
 test('invalid deployment selection cannot reserve and generic digest-less signing remains outside this protection', async () => {
   const vault = harness();
-  await assert.rejects(vault.sign(deployment(), { indexesToSign: [] }), /Invalid agreement deployment/);
+  await assert.rejects(
+    vault.sign(deployment(), { indexesToSign: [] }),
+    /Invalid agreement deployment/,
+  );
   assert.equal(vault.data.size, 0);
   await vault.sign(deployment());
   await vault.sign(deployment(2000n), { agreementDigest: undefined });
@@ -862,40 +877,84 @@ function agreementWithUnit(unit) {
   return copy;
 }
 
-for (const unit of ['round']) test(`${unit} saved agreement verifies exact known programs and restores its deadline metadata`, async () => {
-  const authenticated = agreementWithUnit(unit);
-  const vault = harness(true, authenticated, programs(canonical));
-  await vault.api.verifyAgreementApplication(digest, 123n, 'secret');
-  await vault.api.saveVerifiedLeakSwap({ appId: '123', agreementDigest: digest, combinedAddress: 'mock-combined' }, 'secret');
-  assert.equal(vault.saved.length, 1);
-  assert.equal(vault.saved[0].deadlineUnit, unit === 'round' ? 'round' : undefined);
-  assert.equal(vault.saved[0].createdRound, unit === 'round' ? authenticated.offer.payload.createdRound : undefined);
-  const [restored] = (await vault.load().listVerifiedLeakSwaps('secret')).swaps;
-  assert.equal(restored.agreement.offer.payload.deadlineUnit, authenticated.offer.payload.deadlineUnit);
-  assert.equal(restored.t0, authenticated.offer.payload.t0);
-  assert.equal(restored.t1, authenticated.offer.payload.t1);
-});
+for (const unit of ['round'])
+  test(`${unit} saved agreement verifies exact known programs and restores its deadline metadata`, async () => {
+    const authenticated = agreementWithUnit(unit);
+    const vault = harness(true, authenticated, programs(canonical));
+    await vault.api.verifyAgreementApplication(digest, 123n, 'secret');
+    await vault.api.saveVerifiedLeakSwap(
+      { appId: '123', agreementDigest: digest, combinedAddress: 'mock-combined' },
+      'secret',
+    );
+    assert.equal(vault.saved.length, 1);
+    assert.equal(vault.saved[0].deadlineUnit, unit === 'round' ? 'round' : undefined);
+    assert.equal(
+      vault.saved[0].createdRound,
+      unit === 'round' ? authenticated.offer.payload.createdRound : undefined,
+    );
+    const [restored] = (await vault.load().listVerifiedLeakSwaps('secret')).swaps;
+    assert.equal(
+      restored.agreement.offer.payload.deadlineUnit,
+      authenticated.offer.payload.deadlineUnit,
+    );
+    assert.equal(restored.t0, authenticated.offer.payload.t0);
+    assert.equal(restored.t1, authenticated.offer.payload.t1);
+  });
 
 for (const [name, unit, artifact, alter] of [
   ['timestamp offer with round programs', 'timestamp', canonical, () => {}],
-  ['round offer with modified programs', 'round', canonical, value => { value.approvalProgram[0] ^= 1; }],
-  ['modified timestamp approval', 'timestamp', canonical, value => { value.approvalProgram[0] ^= 1; }],
-  ['modified timestamp clear', 'timestamp', canonical, value => { value.clearStateProgram[0] ^= 1; }],
-]) test(`save and recovery reject ${name} before reserving an application`, async () => {
-  const deployed = programs(artifact);
-  alter(deployed);
-  const vault = harness(true, agreementWithUnit(unit), deployed);
-  await assert.rejects(vault.api.verifyAgreementApplication(digest, 123n, 'secret'), /supported LeakSwap protocol|Legacy timestamp/);
-  await assert.rejects(vault.api.saveVerifiedLeakSwap({ appId: '123', agreementDigest: digest, combinedAddress: 'mock-combined' }, 'secret'), /supported LeakSwap protocol|Legacy timestamp/);
-  assert.equal(vault.saved.length, 0);
-  assert.equal(vault.data.size, 0);
-});
+  [
+    'round offer with modified programs',
+    'round',
+    canonical,
+    (value) => {
+      value.approvalProgram[0] ^= 1;
+    },
+  ],
+  [
+    'modified timestamp approval',
+    'timestamp',
+    canonical,
+    (value) => {
+      value.approvalProgram[0] ^= 1;
+    },
+  ],
+  [
+    'modified timestamp clear',
+    'timestamp',
+    canonical,
+    (value) => {
+      value.clearStateProgram[0] ^= 1;
+    },
+  ],
+])
+  test(`save and recovery reject ${name} before reserving an application`, async () => {
+    const deployed = programs(artifact);
+    alter(deployed);
+    const vault = harness(true, agreementWithUnit(unit), deployed);
+    await assert.rejects(
+      vault.api.verifyAgreementApplication(digest, 123n, 'secret'),
+      /supported LeakSwap protocol|Legacy timestamp/,
+    );
+    await assert.rejects(
+      vault.api.saveVerifiedLeakSwap(
+        { appId: '123', agreementDigest: digest, combinedAddress: 'mock-combined' },
+        'secret',
+      ),
+      /supported LeakSwap protocol|Legacy timestamp/,
+    );
+    assert.equal(vault.saved.length, 0);
+    assert.equal(vault.data.size, 0);
+  });
 
 test('legacy terms are rejected before reserving an application', async () => {
   const authenticated = agreementWithUnit('timestamp');
   authenticated.offer.payload.t0++;
   const vault = harness(true, authenticated, programs(canonical));
-  await assert.rejects(vault.api.verifyAgreementApplication(digest, 123n, 'secret'), /Legacy timestamp/);
+  await assert.rejects(
+    vault.api.verifyAgreementApplication(digest, 123n, 'secret'),
+    /Legacy timestamp/,
+  );
   assert.equal(vault.data.size, 0);
 });
 

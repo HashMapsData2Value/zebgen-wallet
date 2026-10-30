@@ -1,7 +1,11 @@
 import { browser } from 'wxt/browser';
 
 import { probeMoneroDaemonViaBackground } from '../network/messages';
-import { cloneMoneroPreset, MONERO_NETWORK_IDS, type MoneroNetworkConfig } from '../network/networks';
+import {
+  cloneMoneroPreset,
+  MONERO_NETWORK_IDS,
+  type MoneroNetworkConfig,
+} from '../network/networks';
 
 // Blocks subtracted from the chain tip when recording a restore height, to cover small
 // reorgs and a node that is slightly behind. Scanning a few extra blocks costs little;
@@ -11,7 +15,9 @@ const SAFETY_MARGIN_BLOCKS = 20;
 const SWAP_HEIGHTS_KEY = 'moneroSwapAddressRestoreHeights';
 
 /** Current chain height minus a safety margin, or undefined if the node is unreachable. */
-export async function currentRestoreHeight(config: MoneroNetworkConfig): Promise<number | undefined> {
+export async function currentRestoreHeight(
+  config: MoneroNetworkConfig,
+): Promise<number | undefined> {
   try {
     const probe = await probeMoneroDaemonViaBackground(config);
     if (!probe.ok || probe.height === undefined) {
@@ -24,12 +30,19 @@ export async function currentRestoreHeight(config: MoneroNetworkConfig): Promise
   }
 }
 
-export async function generatedWalletRestoreHeights(config: MoneroNetworkConfig, height: number): Promise<Record<string, number>> {
+export async function generatedWalletRestoreHeights(
+  config: MoneroNetworkConfig,
+  height: number,
+): Promise<Record<string, number>> {
   const heights: Record<string, number> = { [config.network]: height };
-  await Promise.all(MONERO_NETWORK_IDS.filter(network => network !== config.network && network !== 'regtest').map(async network => {
-    const restoreHeight = await currentRestoreHeight(cloneMoneroPreset(network));
-    if (restoreHeight !== undefined) heights[network] = restoreHeight;
-  }));
+  await Promise.all(
+    MONERO_NETWORK_IDS.filter((network) => network !== config.network && network !== 'regtest').map(
+      async (network) => {
+        const restoreHeight = await currentRestoreHeight(cloneMoneroPreset(network));
+        if (restoreHeight !== undefined) heights[network] = restoreHeight;
+      },
+    ),
+  );
   return heights;
 }
 

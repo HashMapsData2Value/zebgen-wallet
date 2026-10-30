@@ -9,11 +9,19 @@ function errorMessage(err: unknown): string {
 }
 
 export function createAlgodClient(endpoint: AlgodEndpoint): algosdk.Algodv2 {
-  return new algosdk.Algodv2(endpoint.token, endpoint.server, endpoint.port === '' ? '' : endpoint.port);
+  return new algosdk.Algodv2(
+    endpoint.token,
+    endpoint.server,
+    endpoint.port === '' ? '' : endpoint.port,
+  );
 }
 
 export function createIndexerClient(endpoint: IndexerEndpoint): algosdk.Indexer {
-  return new algosdk.Indexer(endpoint.token, endpoint.server, endpoint.port === '' ? '' : endpoint.port);
+  return new algosdk.Indexer(
+    endpoint.token,
+    endpoint.server,
+    endpoint.port === '' ? '' : endpoint.port,
+  );
 }
 
 export interface AlgodProbeResult {
@@ -24,7 +32,10 @@ export interface AlgodProbeResult {
   genesisId?: string;
 }
 
-export async function probeAlgod(endpoint: AlgodEndpoint, network?: AlgorandNetworkId): Promise<AlgodProbeResult> {
+export async function probeAlgod(
+  endpoint: AlgodEndpoint,
+  network?: AlgorandNetworkId,
+): Promise<AlgodProbeResult> {
   try {
     const client = createAlgodClient(endpoint);
     const params = await client.getTransactionParams().do();
@@ -62,7 +73,7 @@ export interface BalanceResult {
 export async function getAlgoBalance(
   endpoint: AlgodEndpoint,
   address: string,
-  network?: AlgorandNetworkId
+  network?: AlgorandNetworkId,
 ): Promise<BalanceResult> {
   try {
     if (network) {

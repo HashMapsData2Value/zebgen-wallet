@@ -6,21 +6,58 @@ import { readSwapChainStatus } from '../lib/wallet/swapChainStatus.ts';
 const ali = algosdk.generateAccount();
 const xin = algosdk.generateAccount();
 const record = {
-  appId: '123', appAddress: algosdk.getApplicationAddress(123n).toString(), role: 'ali',
-  genesisHash: 'saved-genesis', aliAddress: ali.addr.toString(), xinAddress: xin.addr.toString(),
-  t0: 10000, t1: 17200, context: { network: 'stagenet' }
+  appId: '123',
+  appAddress: algosdk.getApplicationAddress(123n).toString(),
+  role: 'ali',
+  genesisHash: 'saved-genesis',
+  aliAddress: ali.addr.toString(),
+  xinAddress: xin.addr.toString(),
+  t0: 10000,
+  t1: 17200,
+  context: { network: 'stagenet' },
 };
-const uint = (key, value) => ({ key: new TextEncoder().encode(key), value: { type: 2, uint: BigInt(value), bytes: new Uint8Array() } });
-const address = (key, value) => ({ key: new TextEncoder().encode(key), value: { type: 1, uint: 0n, bytes: value.publicKey } });
-const globals = ready => [uint('t0', 10000), uint('t1', 17200), uint('aliReady', ready), address('aliAlgoAddr', ali.addr), address('xinAlgoAddr', xin.addr)];
+const uint = (key, value) => ({
+  key: new TextEncoder().encode(key),
+  value: { type: 2, uint: BigInt(value), bytes: new Uint8Array() },
+});
+const address = (key, value) => ({
+  key: new TextEncoder().encode(key),
+  value: { type: 1, uint: 0n, bytes: value.publicKey },
+});
+const globals = (ready) => [
+  uint('t0', 10000),
+  uint('t1', 17200),
+  uint('aliReady', ready),
+  address('aliAlgoAddr', ali.addr),
+  address('xinAlgoAddr', xin.addr),
+];
 const calls = [];
-function node({ ready = 0, amount = 5000000n, appError, accountError, state = globals(ready) } = {}) {
+function node({
+  ready = 0,
+  amount = 5000000n,
+  appError,
+  accountError,
+  state = globals(ready),
+} = {}) {
   return {
-    getApplicationByID: appId => ({ do: async () => { calls.push(['app', appId]); if (appError) throw appError; return { params: { globalState: state } }; } }),
-    accountInformation: account => ({ do: async () => { calls.push(['account', account]); if (accountError) throw accountError; return { amount }; } }),
+    getApplicationByID: (appId) => ({
+      do: async () => {
+        calls.push(['app', appId]);
+        if (appError) throw appError;
+        return { params: { globalState: state } };
+      },
+    }),
+    accountInformation: (account) => ({
+      do: async () => {
+        calls.push(['account', account]);
+        if (accountError) throw accountError;
+        return { amount };
+      },
+    }),
   };
 }
-const read = (client, overrides = {}) => readSwapChainStatus({ ...record, ...overrides }, client, 'saved-genesis', 9000, 9000);
+const read = (client, overrides = {}) =>
+  readSwapChainStatus({ ...record, ...overrides }, client, 'saved-genesis', 9000, 9000);
 
 test('reads matching contract readiness and exact escrow balances', async () => {
   const funded = await read(node());
@@ -44,7 +81,7 @@ test('only a matching-network application 404 counts as unavailable', async () =
 
 test('changed parties, deadlines, readiness and escrow identities are rejected', async () => {
   for (const state of [
-    globals(0).filter(entry => new TextDecoder().decode(entry.key) !== 't0'),
+    globals(0).filter((entry) => new TextDecoder().decode(entry.key) !== 't0'),
     [uint('t0', 9999), ...globals(0).slice(1)],
     globals(2),
     [...globals(0).slice(0, 3), address('aliAlgoAddr', xin.addr), address('xinAlgoAddr', xin.addr)],
@@ -71,5 +108,7 @@ test('RPC errors remain unknown instead of pretending funds are absent or settle
     assert.equal(escrow.escrowAtomic, undefined);
     assert.equal(failures.length, 2);
     assert.equal(failures[0][1], failure);
-  } finally { console.error = original; }
+  } finally {
+    console.error = original;
+  }
 });

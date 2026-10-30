@@ -27,35 +27,61 @@ export default function MoneroRecovery({ material }: { material: MoneroKeyMateri
   }
 
   const deterministic = genPrivateViewKey(material.privateSpendKey) === material.privateViewKey;
-  const mnemonic = revealed && deterministic ? privateKeyToMoneroMnemonic(material.privateSpendKey) : '';
+  const mnemonic =
+    revealed && deterministic ? privateKeyToMoneroMnemonic(material.privateSpendKey) : '';
   return (
     <section className="recovery-view">
       <h2>Recovery & private keys</h2>
-      <div className="seed-warning">{deterministic
-        ? 'Your recovery phrase and private spend key grant full control of this wallet. Never share them with a swap counterparty.'
-        : 'This combined wallet requires both private keys for recovery. A spend-key mnemonic alone cannot restore this address. Keep both keys private.'}</div>
+      <div className="seed-warning">
+        {deterministic
+          ? 'Your recovery phrase and private spend key grant full control of this wallet. Never share them with a swap counterparty.'
+          : 'This combined wallet requires both private keys for recovery. A spend-key mnemonic alone cannot restore this address. Keep both keys private.'}
+      </div>
       {!revealed ? (
         <form className="import-form" onSubmit={reveal}>
           <label htmlFor="monero-recovery-secret">Confirm password or PIN</label>
-          <input id="monero-recovery-secret" type="password" value={secret}
-            onChange={(event) => setSecret(event.target.value)} autoComplete="off" required />
-          <button className="danger" disabled={busy}>{busy ? 'Unlocking...' : deterministic ? 'Reveal Recovery Mnemonic' : 'Reveal Recovery Keys'}</button>
+          <input
+            id="monero-recovery-secret"
+            type="password"
+            value={secret}
+            onChange={(event) => setSecret(event.target.value)}
+            autoComplete="off"
+            required
+          />
+          <button className="danger" disabled={busy}>
+            {busy
+              ? 'Unlocking...'
+              : deterministic
+                ? 'Reveal Recovery Mnemonic'
+                : 'Reveal Recovery Keys'}
+          </button>
         </form>
       ) : (
         <>
-          {deterministic ? <>
-            <div className="seed-reveal-words">
-              {mnemonic.split(' ').map((word, index) => (
-                <span className="seed-word" key={`${word}-${index}`}><span className="seed-word-index">{index + 1}</span>{word}</span>
-              ))}
-            </div>
-            <CopyValue value={mnemonic} label="recovery phrase" />
-          </> : null}
+          {deterministic ? (
+            <>
+              <div className="seed-reveal-words">
+                {mnemonic.split(' ').map((word, index) => (
+                  <span className="seed-word" key={`${word}-${index}`}>
+                    <span className="seed-word-index">{index + 1}</span>
+                    {word}
+                  </span>
+                ))}
+              </div>
+              <CopyValue value={mnemonic} label="recovery phrase" />
+            </>
+          ) : null}
           <MoneroKeyList material={material} includeSecrets />
-          <button className="secondary" type="button" onClick={() => setRevealed(false)}>Hide recovery details</button>
+          <button className="secondary" type="button" onClick={() => setRevealed(false)}>
+            Hide recovery details
+          </button>
         </>
       )}
-      {error ? <p className="error" role="alert">{error}</p> : null}
+      {error ? (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      ) : null}
     </section>
   );
 }

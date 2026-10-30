@@ -107,13 +107,16 @@ test(
         );
         await host.screenshot({ path: resolve(tmpdir(), `zebgen-scan-host-${width}.png`) });
       }
-      await host.getByText('Set a wallet password or PIN first.', { exact: true })
+      await host
+        .getByText('Set a wallet password or PIN first.', { exact: true })
         .waitFor({ state: 'visible', timeout: 65000 })
         .catch(async (error) => {
           console.error('scan lifetime diagnostic', {
             requests,
             display: await host.locator('main').innerText(),
-            background: await host.evaluate(() => chrome.runtime.sendMessage({ type: 'monero:scanDisplayStatus' })),
+            background: await host.evaluate(() =>
+              chrome.runtime.sendMessage({ type: 'monero:scanDisplayStatus' }),
+            ),
           });
           throw error;
         });
@@ -123,7 +126,11 @@ test(
       );
       assert.deepEqual(context.pages(), [host], 'only the scan display may remain open');
       assert.equal(await host.locator('#status').innerText(), 'All scans finished');
-      assert.equal(requests, 2, 'one job must finish daemon verification without a viewer or restart');
+      assert.equal(
+        requests,
+        2,
+        'one job must finish daemon verification without a viewer or restart',
+      );
     } finally {
       await context?.close();
       await rm(profile, { recursive: true, force: true });

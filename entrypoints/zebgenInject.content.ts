@@ -1,7 +1,19 @@
 import { PROVIDER_PAGE_MATCHES } from '../lib/provider/pageMatches';
-import type { ZebgenPageRequest, ZebgenPageResponse, ZebgenRequestType } from '../lib/provider/types';
-import type { ZebgenScanCombinedMoneroFundingParams, ZebgenScanCombinedMoneroFundingResult, ZebgenSaveLeakSwapParams, ZebgenSavedLeakSwap } from '../lib/provider/types';
-import type { ZebgenDepositLeakSwapMoneroParams, ZebgenDepositLeakSwapMoneroResult } from '../lib/provider/types';
+import type {
+  ZebgenPageRequest,
+  ZebgenPageResponse,
+  ZebgenRequestType,
+} from '../lib/provider/types';
+import type {
+  ZebgenScanCombinedMoneroFundingParams,
+  ZebgenScanCombinedMoneroFundingResult,
+  ZebgenSaveLeakSwapParams,
+  ZebgenSavedLeakSwap,
+} from '../lib/provider/types';
+import type {
+  ZebgenDepositLeakSwapMoneroParams,
+  ZebgenDepositLeakSwapMoneroResult,
+} from '../lib/provider/types';
 
 // Runs in the page's own MAIN world (native MV3 `world: "MAIN"` injection, so
 // it isn't subject to the page's script-src CSP) and exposes `window.zebgen`.
@@ -15,7 +27,10 @@ export default defineContentScript({
       return;
     }
 
-    const pending = new Map<string, { resolve: (value: unknown) => void; reject: (err: Error) => void }>();
+    const pending = new Map<
+      string,
+      { resolve: (value: unknown) => void; reject: (err: Error) => void }
+    >();
 
     window.addEventListener('message', (event) => {
       if (event.source !== window) {
@@ -81,20 +96,35 @@ interface ZebgenProvider {
     offer: import('leakswap-utils/dist/swapHandshake.js').SignedOffer;
     acceptance: import('leakswap-utils/dist/swapHandshake.js').SignedAcceptance;
   }>;
-  createSwapInvite: (params: { algoAmount: string; xmrAmount: string; t0: number; t1: number }) => Promise<{
+  createSwapInvite: (params: {
+    algoAmount: string;
+    xmrAmount: string;
+    t0: number;
+    t1: number;
+  }) => Promise<{
     offer: import('leakswap-utils/dist/swapHandshake.js').SignedOffer;
-    offerDigest: string; link: string;
+    offerDigest: string;
+    link: string;
   }>;
   acceptSwapInvite: (params: { link: string }) => Promise<{
     offer: import('leakswap-utils/dist/swapHandshake.js').SignedOffer;
-    acceptance: import('leakswap-utils/dist/swapHandshake.js').SignedAcceptance; link: string;
+    acceptance: import('leakswap-utils/dist/swapHandshake.js').SignedAcceptance;
+    link: string;
   }>;
   saveLeakSwap: (params: ZebgenSaveLeakSwapParams) => Promise<{ appId: string }>;
-  depositLeakSwapMonero: (params: ZebgenDepositLeakSwapMoneroParams) => Promise<ZebgenDepositLeakSwapMoneroResult>;
-  settleLeakSwap: (params: import('../lib/wallet/settleLeakSwap').SettleLeakSwapParams) => Promise<import('../lib/wallet/settleLeakSwap').SettleLeakSwapResult>;
+  depositLeakSwapMonero: (
+    params: ZebgenDepositLeakSwapMoneroParams,
+  ) => Promise<ZebgenDepositLeakSwapMoneroResult>;
+  settleLeakSwap: (
+    params: import('../lib/wallet/settleLeakSwap').SettleLeakSwapParams,
+  ) => Promise<import('../lib/wallet/settleLeakSwap').SettleLeakSwapResult>;
   listLeakSwaps: () => Promise<{ swaps: ZebgenSavedLeakSwap[] }>;
-  recoverLeakSwapMonero: (params: import('../lib/wallet/recoverLeakSwap').RecoverLeakSwapParams) => Promise<import('../lib/wallet/recoverLeakSwap').RecoverLeakSwapResult>;
-  scanCombinedMoneroFunding: (params: ZebgenScanCombinedMoneroFundingParams) => Promise<ZebgenScanCombinedMoneroFundingResult>;
+  recoverLeakSwapMonero: (
+    params: import('../lib/wallet/recoverLeakSwap').RecoverLeakSwapParams,
+  ) => Promise<import('../lib/wallet/recoverLeakSwap').RecoverLeakSwapResult>;
+  scanCombinedMoneroFunding: (
+    params: ZebgenScanCombinedMoneroFundingParams,
+  ) => Promise<ZebgenScanCombinedMoneroFundingResult>;
   connect: () => Promise<{ algoAddress: string | null; moneroAddress: string | null }>;
   getAlgorandAddress: (params?: {
     addressIndex?: number;
@@ -108,7 +138,11 @@ interface ZebgenProvider {
     moneroWalletId?: number;
     counterpartyPrivateViewKey: string;
     counterpartyPublicSpendKey: string;
-  }) => Promise<{ combinedAddress: string; combinedPublicSpendKey: string; combinedPublicViewKey: string }>;
+  }) => Promise<{
+    combinedAddress: string;
+    combinedPublicSpendKey: string;
+    combinedPublicViewKey: string;
+  }>;
   signAlgorandTransactions: (params: {
     agreementDigest?: string;
     agreementAppId?: string;

@@ -98,7 +98,8 @@ export interface ZebgenComputeCombinedMoneroAddressResult {
   combinedPublicViewKey: string;
 }
 
-export interface ZebgenScanCombinedMoneroFundingParams extends ZebgenComputeCombinedMoneroAddressParams {
+export interface ZebgenScanCombinedMoneroFundingParams
+  extends ZebgenComputeCombinedMoneroAddressParams {
   restoreHeight?: number;
 }
 

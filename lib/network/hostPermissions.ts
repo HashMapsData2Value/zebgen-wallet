@@ -7,10 +7,18 @@ const BUILT_IN_HOSTS = new Set(['localhost', '127.0.0.1']);
 export function isPrivateNetworkHost(hostname: string): boolean {
   const host = hostname.replace(/^\[|\]$/g, '').toLowerCase();
   if (host === 'localhost' || host === '::1' || host.endsWith('.local')) return true;
-  const octets = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)?.slice(1).map(Number);
+  const octets = host
+    .match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
+    ?.slice(1)
+    .map(Number);
   if (!octets || octets.some((octet) => octet > 255)) return false;
   const [first, second] = octets;
-  return first === 127 || first === 10 || (first === 172 && second >= 16 && second <= 31) || (first === 192 && second === 168);
+  return (
+    first === 127 ||
+    first === 10 ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168)
+  );
 }
 
 function originPattern(url: string): string | null {
@@ -39,7 +47,9 @@ export async function ensureHostPermissions(urls: string[]): Promise<void> {
     }
     const { protocol, hostname } = new URL(url);
     if (protocol === 'http:' && !isPrivateNetworkHost(hostname)) {
-      throw new Error(`Use https:// for ${hostname}. Unencrypted connections to remote nodes can be altered on the way, including deposit and balance data.`);
+      throw new Error(
+        `Use https:// for ${hostname}. Unencrypted connections to remote nodes can be altered on the way, including deposit and balance data.`,
+      );
     }
     if (!BUILT_IN_HOSTS.has(new URL(url).hostname) && !origins.includes(pattern)) {
       origins.push(pattern);

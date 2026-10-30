@@ -86,12 +86,15 @@ export function privateKeyToMoneroMnemonic(privateKeyHex: string): string {
   const words: string[] = [];
   for (let i = 0; i < bytes.length; i += 4) {
     // Little-endian uint32 (arithmetic avoids 32-bit sign issues).
-    const value =
-      bytes[i] + bytes[i + 1] * 256 + bytes[i + 2] * 65536 + bytes[i + 3] * 16777216;
+    const value = bytes[i] + bytes[i + 1] * 256 + bytes[i + 2] * 65536 + bytes[i + 3] * 16777216;
     const w1 = value % WORD_COUNT;
     const w2 = (Math.floor(value / WORD_COUNT) + w1) % WORD_COUNT;
     const w3 = (Math.floor(value / WORD_COUNT / WORD_COUNT) + w2) % WORD_COUNT;
-    words.push(MONERO_ENGLISH_WORDLIST[w1], MONERO_ENGLISH_WORDLIST[w2], MONERO_ENGLISH_WORDLIST[w3]);
+    words.push(
+      MONERO_ENGLISH_WORDLIST[w1],
+      MONERO_ENGLISH_WORDLIST[w2],
+      MONERO_ENGLISH_WORDLIST[w3],
+    );
   }
 
   words.push(words[checksumIndex(words)]);
@@ -127,8 +130,8 @@ export function moneroMnemonicToPrivateKey(mnemonic: string): string {
     const w3 = wordIndex(seedWords[i + 2]);
     const value =
       w1 +
-      WORD_COUNT * (((WORD_COUNT - w1 + w2) % WORD_COUNT)) +
-      WORD_COUNT * WORD_COUNT * (((WORD_COUNT - w2 + w3) % WORD_COUNT));
+      WORD_COUNT * ((WORD_COUNT - w1 + w2) % WORD_COUNT) +
+      WORD_COUNT * WORD_COUNT * ((WORD_COUNT - w2 + w3) % WORD_COUNT);
     out[offset] = value & 0xff;
     out[offset + 1] = (value >>> 8) & 0xff;
     out[offset + 2] = (value >>> 16) & 0xff;

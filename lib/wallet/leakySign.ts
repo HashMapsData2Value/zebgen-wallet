@@ -28,7 +28,7 @@ export function leakySign(message: Uint8Array, scalar: Uint8Array): Uint8Array {
   const secretKeyBigInt = bytesToNumberLE(scalar) % order;
   const rBigInt = bytesToNumberLE(r);
 
-  const sBigInt = (rBigInt + (challengeBigInt * secretKeyBigInt) % order) % order;
+  const sBigInt = (rBigInt + ((challengeBigInt * secretKeyBigInt) % order)) % order;
   const s = numberToBytesLE(sBigInt, 32);
 
   const signature = new Uint8Array([...R, ...s]);

@@ -29,7 +29,10 @@ export default defineContentScript({
       try {
         validateProviderRequest(data.type, data.params);
       } catch (error) {
-        postResponse(data.id, { ok: false, error: error instanceof Error ? error.message : String(error) });
+        postResponse(data.id, {
+          ok: false,
+          error: error instanceof Error ? error.message : String(error),
+        });
         return;
       }
 
@@ -47,7 +50,7 @@ export default defineContentScript({
           postResponse(data.id, {
             ok: false,
             error: err instanceof Error ? err.message : String(err),
-          })
+          }),
       );
     });
   },

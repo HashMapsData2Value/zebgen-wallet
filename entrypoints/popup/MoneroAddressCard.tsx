@@ -58,7 +58,9 @@ function MoneroAddressCard({
             >
               <ArrowLeft size={16} />
             </button>
-            <span className="index-label">{addressPosition + 1} of {addressCount}</span>
+            <span className="index-label">
+              {addressPosition + 1} of {addressCount}
+            </span>
             <button
               type="button"
               className="icon-btn"
@@ -89,12 +91,19 @@ function MoneroAddressCard({
         </div>
 
         <div className="address-row">
-          <p className="address" title={material.address}>{material.address.slice(0, 10)}...{material.address.slice(-8)}</p>
+          <p className="address" title={material.address}>
+            {material.address.slice(0, 10)}...{material.address.slice(-8)}
+          </p>
           <CopyValue value={material.address} label="address" />
         </div>
-        <MoneroBalance key={`${material.address}-${settings.monero.daemon.uri}-${restoreHeight}`}
-          address={material.address} config={settings.monero} walletId={walletId}
-          lockSecret={lockSecret} restoreHeight={restoreHeight} />
+        <MoneroBalance
+          key={`${material.address}-${settings.monero.daemon.uri}-${restoreHeight}`}
+          address={material.address}
+          config={settings.monero}
+          walletId={walletId}
+          lockSecret={lockSecret}
+          restoreHeight={restoreHeight}
+        />
       </div>
     </>
   );

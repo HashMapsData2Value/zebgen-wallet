@@ -31,8 +31,14 @@ export default function CopyValue({ value, label }: CopyValueProps) {
 
   return (
     <span className="copy-control">
-      <button type="button" className="icon-btn" onClick={copy}
-        title={`Copy ${label}`} aria-label={`Copy ${label}`} disabled={!value}>
+      <button
+        type="button"
+        className="icon-btn"
+        onClick={copy}
+        title={`Copy ${label}`}
+        aria-label={`Copy ${label}`}
+        disabled={!value}
+      >
         {status === 'copied' ? <Check size={16} /> : <Copy size={16} />}
       </button>
       <span className="copy-feedback" role="status">

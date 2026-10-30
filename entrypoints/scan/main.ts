@@ -62,9 +62,13 @@ void navigator.locks
       return;
     }
     browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      if (sender.id !== browser.runtime.id || sender.tab ||
-          (sender.url !== browser.runtime.getURL('/background.js') &&
-           sender.url !== new URL('_generated_background_page.html', browser.runtime.getURL('/')).href))
+      if (
+        sender.id !== browser.runtime.id ||
+        sender.tab ||
+        (sender.url !== browser.runtime.getURL('/background.js') &&
+          sender.url !==
+            new URL('_generated_background_page.html', browser.runtime.getURL('/')).href)
+      )
         return false;
       if (message?.type === 'monero:scanDisplay' && Array.isArray(message.states)) {
         states = message.states;

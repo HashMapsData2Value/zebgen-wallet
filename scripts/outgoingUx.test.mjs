@@ -119,7 +119,13 @@ test('funding scan shows activity before and during block progress at narrow and
     const page = await browser.newPage();
     for (const width of [320, 1100]) {
       await page.setViewportSize({ width, height: 900 });
-      for (const progress of [null, { scannedHeight: 1200, targetHeight: 2400 }, { startHeight: 1000, scannedHeight: 1200, targetHeight: 2400 }, { startHeight: 0, scannedHeight: 1200, targetHeight: 2400 }, { startHeight: 2400, scannedHeight: 2400, targetHeight: 2400 }]) {
+      for (const progress of [
+        null,
+        { scannedHeight: 1200, targetHeight: 2400 },
+        { startHeight: 1000, scannedHeight: 1200, targetHeight: 2400 },
+        { startHeight: 0, scannedHeight: 1200, targetHeight: 2400 },
+        { startHeight: 2400, scannedHeight: 2400, targetHeight: 2400 },
+      ]) {
         const Progress = component('ScanApprovalProgress', [37]);
         await page.setContent(
           `<style>${styles}\n${css}</style>${renderToStaticMarkup(react.createElement(Progress, { progress }))}`,
@@ -137,9 +143,29 @@ test('funding scan shows activity before and during block progress at narrow and
           const bar = status.getByRole('progressbar', { name: 'Monero blocks checked' });
           assert.equal(await bar.getAttribute('max'), String(total || 1));
           assert.equal(await bar.getAttribute('value'), String(total === 0 ? 1 : checked));
-          assert.equal(await status.getByText(`${checked.toLocaleString()} of ${total.toLocaleString()} blocks checked; ${(total - checked).toLocaleString()} remaining.`, { exact: true }).isVisible(), true);
-          assert.equal(await status.getByText(progress.startHeight === 0 ? /Checking from block 0/ : /Starting at this swap's restore height/).isVisible(), true);
-          assert.equal(await status.getByText(/does not resume a previous funding scan/).isVisible(), true);
+          assert.equal(
+            await status
+              .getByText(
+                `${checked.toLocaleString()} of ${total.toLocaleString()} blocks checked; ${(total - checked).toLocaleString()} remaining.`,
+                { exact: true },
+              )
+              .isVisible(),
+            true,
+          );
+          assert.equal(
+            await status
+              .getByText(
+                progress.startHeight === 0
+                  ? /Checking from block 0/
+                  : /Starting at this swap's restore height/,
+              )
+              .isVisible(),
+            true,
+          );
+          assert.equal(
+            await status.getByText(/does not resume a previous funding scan/).isVisible(),
+            true,
+          );
         }
         assert.equal(
           await status

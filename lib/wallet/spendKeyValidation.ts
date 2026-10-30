@@ -6,6 +6,9 @@ export function assertUsablePublicSpendKey(hex: string, owner: string): void {
   try {
     const point = ed25519.Point.fromHex(hex);
     valid = !point.is0() && point.isTorsionFree();
-  } catch { /* not a curve point */ }
-  if (!valid) throw new Error(`${owner} Monero public key is not valid. Do not continue with this swap.`);
+  } catch {
+    /* not a curve point */
+  }
+  if (!valid)
+    throw new Error(`${owner} Monero public key is not valid. Do not continue with this swap.`);
 }

@@ -4,24 +4,57 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import ts from 'typescript';
 
-const compiled = ts.transpileModule(readFileSync(new URL('../lib/provider/connectionSelection.ts', import.meta.url), 'utf8'), {
-  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-}).outputText;
+const compiled = ts.transpileModule(
+  readFileSync(new URL('../lib/provider/connectionSelection.ts', import.meta.url), 'utf8'),
+  {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  },
+).outputText;
 
 function fixture() {
-  const state = { meta: { activeSeedId: 1, algoAddress: 'ALGO_ONE', activeMoneroKeyId: 1, moneroAddress: 'XMR_ONE', lockSalt: 'keep-salt', lockVerifier: 'keep-verifier' }, writes: 0 };
+  const state = {
+    meta: {
+      activeSeedId: 1,
+      algoAddress: 'ALGO_ONE',
+      activeMoneroKeyId: 1,
+      moneroAddress: 'XMR_ONE',
+      lockSalt: 'keep-salt',
+      lockVerifier: 'keep-verifier',
+    },
+    writes: 0,
+  };
   const api = {};
   runInNewContext(compiled, {
     exports: api,
     navigator: { locks: { request: async (_name, callback) => callback() } },
-    require: name => {
-      if (name.endsWith('/db')) return {
-        getAllSeedRecords: async () => [{ id: 1, algoAddress: 'ALGO_ONE' }, { id: 2, algoAddress: 'ALGO_TWO' }],
-        getWalletMeta: async () => state.meta,
-        setWalletMeta: async meta => { state.meta = meta; state.writes++; },
-      };
-      if (name.endsWith('/moneroVault')) return { getMoneroWalletState: async () => ({ wallets: [{ id: 1, address: 'XMR_ONE' }, { id: 2, address: 'XMR_TWO' }] }) };
-      if (name.endsWith('/connectionApproval')) return { activeConnectionAccounts: async () => { throw new Error('Unexpected fallback'); } };
+    require: (name) => {
+      if (name.endsWith('/db'))
+        return {
+          getAllSeedRecords: async () => [
+            { id: 1, algoAddress: 'ALGO_ONE' },
+            { id: 2, algoAddress: 'ALGO_TWO' },
+          ],
+          getWalletMeta: async () => state.meta,
+          setWalletMeta: async (meta) => {
+            state.meta = meta;
+            state.writes++;
+          },
+        };
+      if (name.endsWith('/moneroVault'))
+        return {
+          getMoneroWalletState: async () => ({
+            wallets: [
+              { id: 1, address: 'XMR_ONE' },
+              { id: 2, address: 'XMR_TWO' },
+            ],
+          }),
+        };
+      if (name.endsWith('/connectionApproval'))
+        return {
+          activeConnectionAccounts: async () => {
+            throw new Error('Unexpected fallback');
+          },
+        };
       throw new Error(name);
     },
   });
@@ -30,8 +63,14 @@ function fixture() {
 
 test('only the active Algorand mnemonic is offered, while the Monero wallet can still be chosen', async () => {
   const { api, state } = fixture();
-  assert.deepEqual(JSON.parse(JSON.stringify((await api.connectionChoices()).algo)), [{ id: 1, address: 'ALGO_ONE' }]);
-  await api.activateConnectionSelection({ algoAddress: 'ALGO_ONE', moneroAddress: 'XMR_TWO', moneroWalletId: 2 });
+  assert.deepEqual(JSON.parse(JSON.stringify((await api.connectionChoices()).algo)), [
+    { id: 1, address: 'ALGO_ONE' },
+  ]);
+  await api.activateConnectionSelection({
+    algoAddress: 'ALGO_ONE',
+    moneroAddress: 'XMR_TWO',
+    moneroWalletId: 2,
+  });
   assert.equal(state.meta.activeSeedId, 1);
   assert.equal(state.meta.activeMoneroKeyId, 2);
   assert.equal(state.meta.algoAddress, 'ALGO_ONE');
@@ -43,7 +82,14 @@ test('only the active Algorand mnemonic is offered, while the Monero wallet can 
 
 test('a connection cannot switch to an inactive Algorand mnemonic', async () => {
   const { api, state } = fixture();
-  await assert.rejects(api.activateConnectionSelection({ algoAddress: 'ALGO_TWO', moneroAddress: 'XMR_ONE', moneroWalletId: 1 }), /no longer available/);
+  await assert.rejects(
+    api.activateConnectionSelection({
+      algoAddress: 'ALGO_TWO',
+      moneroAddress: 'XMR_ONE',
+      moneroWalletId: 1,
+    }),
+    /no longer available/,
+  );
   assert.equal(state.writes, 0);
   assert.equal(state.meta.activeSeedId, 1);
 });

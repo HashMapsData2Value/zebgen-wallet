@@ -30,16 +30,23 @@ export async function listAlgoWallets() {
   const [records, meta] = await Promise.all([getAllSeedRecords(), getWalletMeta()]);
   return {
     activeSeedId: meta?.activeSeedId ?? null,
-    wallets: records.filter(record => record.id !== undefined).map(record => ({
-      id: record.id!, address: record.algoAddress,
-      addresses: { '0': record.algoAddress, ...record.derivedAddresses },
-    })),
+    wallets: records
+      .filter((record) => record.id !== undefined)
+      .map((record) => ({
+        id: record.id!,
+        address: record.algoAddress,
+        addresses: { '0': record.algoAddress, ...record.derivedAddresses },
+      })),
   };
 }
 
 export async function selectAlgoWallet(seedId: number, lockSecret: string) {
   const meta = await getWalletMeta();
-  if (!meta?.lockSalt || !meta.lockVerifier || !await verifyWalletLock(lockSecret, meta.lockSalt, meta.lockVerifier)) {
+  if (
+    !meta?.lockSalt ||
+    !meta.lockVerifier ||
+    !(await verifyWalletLock(lockSecret, meta.lockSalt, meta.lockVerifier))
+  ) {
     throw new Error('Invalid wallet password or PIN.');
   }
   const record = await getSeedRecord(seedId);
@@ -57,10 +64,7 @@ export async function derivePrimaryAlgoAddressFromMnemonic(mnemonic: string) {
   return deriveAlgoAddressFromMnemonicAtIndex(mnemonic, 0);
 }
 
-export async function deriveAlgoAddressFromMnemonicAtIndex(
-  mnemonic: string,
-  addressIndex: number
-) {
+export async function deriveAlgoAddressFromMnemonicAtIndex(mnemonic: string, addressIndex: number) {
   if (!Number.isInteger(addressIndex) || addressIndex < 0) {
     throw new Error('Address index must be a non-negative integer.');
   }
@@ -205,10 +209,7 @@ export async function unlockWallet(lockSecret: string): Promise<{ algoAddress: s
   return { algoAddress: meta.algoAddress ?? null };
 }
 
-export async function deriveActiveSeedAlgoAddressAtIndex(
-  lockSecret: string,
-  addressIndex: number
-) {
+export async function deriveActiveSeedAlgoAddressAtIndex(lockSecret: string, addressIndex: number) {
   if (!Number.isInteger(addressIndex) || addressIndex < 0) {
     throw new Error('Address index must be a non-negative integer.');
   }
@@ -231,7 +232,7 @@ export async function deriveActiveSeedAlgoAddressAtIndex(
     seedRecord.encryptedSeed,
     lockSecret,
     seedRecord.salt,
-    seedRecord.iv
+    seedRecord.iv,
   );
 
   try {
@@ -260,7 +261,7 @@ export async function prepareAlgoPayment(
   amountMicroAlgos: bigint,
   endpoint: AlgodEndpoint,
   note?: string,
-  network?: AlgorandNetworkId
+  network?: AlgorandNetworkId,
 ): Promise<{ txId: string; feeMicroAlgos: bigint; signed: Uint8Array; sender: string }> {
   if (!algosdk.isValidAddress(receiver)) {
     throw new Error('Enter a valid Algorand recipient address.');
@@ -286,7 +287,7 @@ export async function prepareAlgoPayment(
     seedRecord.encryptedSeed,
     lockSecret,
     seedRecord.salt,
-    seedRecord.iv
+    seedRecord.iv,
   );
   try {
     const rootKey = fromSeed(decryptedSeed as unknown as Buffer);
@@ -309,7 +310,7 @@ export async function prepareAlgoPayment(
         KeyContext.Address,
         0,
         addressIndex,
-        transaction.bytesToSign()
+        transaction.bytesToSign(),
       );
       const signed = transaction.attachSignature(sender, signature);
       return { txId: transaction.txID(), feeMicroAlgos: transaction.fee, signed, sender };
@@ -321,14 +322,20 @@ export async function prepareAlgoPayment(
   }
 }
 
-export async function submitAlgoPayment(endpoint: AlgodEndpoint, signed: Uint8Array): Promise<string> {
+export async function submitAlgoPayment(
+  endpoint: AlgodEndpoint,
+  signed: Uint8Array,
+): Promise<string> {
   const client = createAlgodClient(endpoint);
   const params = await client.getTransactionParams().do();
   const transaction = algosdk.decodeSignedTransaction(signed).txn;
-  if (transaction.genesisID !== params.genesisID ||
-    !transaction.genesisHash || !params.genesisHash ||
+  if (
+    transaction.genesisID !== params.genesisID ||
+    !transaction.genesisHash ||
+    !params.genesisHash ||
     transaction.genesisHash.length !== params.genesisHash.length ||
-    transaction.genesisHash.some((byte, index) => byte !== params.genesisHash![index])) {
+    transaction.genesisHash.some((byte, index) => byte !== params.genesisHash![index])
+  ) {
     throw new Error('Algod chain changed since preparation. Review the transaction again.');
   }
   const submitted = await client.sendRawTransaction(signed).do();
@@ -341,9 +348,16 @@ export async function sendAlgoPayment(
   receiver: string,
   amountMicroAlgos: bigint,
   endpoint: AlgodEndpoint,
-  note?: string
+  note?: string,
 ): Promise<{ txId: string; feeMicroAlgos: bigint }> {
-  const prepared = await prepareAlgoPayment(lockSecret, addressIndex, receiver, amountMicroAlgos, endpoint, note);
+  const prepared = await prepareAlgoPayment(
+    lockSecret,
+    addressIndex,
+    receiver,
+    amountMicroAlgos,
+    endpoint,
+    note,
+  );
   const txId = await submitAlgoPayment(endpoint, prepared.signed);
   return { txId, feeMicroAlgos: prepared.feeMicroAlgos };
 }
@@ -358,7 +372,7 @@ export async function sendAlgoPayment(
 export async function signRawTransactions(
   lockSecret: string,
   addressIndex: number,
-  unsignedTxns: Uint8Array[]
+  unsignedTxns: Uint8Array[],
 ): Promise<Uint8Array[]> {
   if (!Number.isInteger(addressIndex) || addressIndex < 0) {
     throw new Error('Address index must be a non-negative integer.');
@@ -381,7 +395,7 @@ export async function signRawTransactions(
     seedRecord.encryptedSeed,
     lockSecret,
     seedRecord.salt,
-    seedRecord.iv
+    seedRecord.iv,
   );
   try {
     const rootKey = fromSeed(decryptedSeed as unknown as Buffer);
@@ -398,7 +412,7 @@ export async function signRawTransactions(
           KeyContext.Address,
           0,
           addressIndex,
-          transaction.bytesToSign()
+          transaction.bytesToSign(),
         );
         signed.push(transaction.attachSignature(sender, signature));
       }
@@ -411,10 +425,14 @@ export async function signRawTransactions(
   }
 }
 
-export async function signSwapHandshake(lockSecret: string, message: Omit<Handshake, 'signature'>): Promise<string> {
-  const expectedAddress = message.kind === 'invite'
-    ? (message.payload as { aliAlgoAddress: string }).aliAlgoAddress
-    : (message.payload as { xinAlgoAddress: string }).xinAlgoAddress;
+export async function signSwapHandshake(
+  lockSecret: string,
+  message: Omit<Handshake, 'signature'>,
+): Promise<string> {
+  const expectedAddress =
+    message.kind === 'invite'
+      ? (message.payload as { aliAlgoAddress: string }).aliAlgoAddress
+      : (message.payload as { xinAlgoAddress: string }).xinAlgoAddress;
   await unlockWallet(lockSecret);
   const meta = await getWalletMeta();
   const record = meta?.activeSeedId ? await getSeedRecord(meta.activeSeedId) : null;
@@ -425,11 +443,16 @@ export async function signSwapHandshake(lockSecret: string, message: Omit<Handsh
     try {
       const wallet = new XHDWalletAPI();
       const publicKey = await wallet.keyGen(root, KeyContext.Address, 0, 0);
-      if (new algosdk.Address(publicKey).toString() !== expectedAddress) throw new Error('Swap authentication signer does not match the active wallet.');
+      if (new algosdk.Address(publicKey).toString() !== expectedAddress)
+        throw new Error('Swap authentication signer does not match the active wallet.');
       const signature = await signCanonicalSwapHandshake(root, message);
       return Array.from(signature, (byte) => byte.toString(16).padStart(2, '0')).join('');
-    } finally { root.fill(0); }
-  } finally { seed.fill(0); }
+    } finally {
+      root.fill(0);
+    }
+  } finally {
+    seed.fill(0);
+  }
 }
 
 export async function revealActiveSeedMnemonic(lockSecret: string): Promise<string> {
@@ -464,7 +487,7 @@ export async function revealActiveSeedMnemonic(lockSecret: string): Promise<stri
     seedRecord.encryptedMnemonic,
     lockSecret,
     seedRecord.mnemonicSalt,
-    seedRecord.mnemonicIv
+    seedRecord.mnemonicIv,
   );
 
   try {
@@ -479,15 +502,13 @@ function normalizeMnemonic(mnemonic: string) {
 }
 
 function asSeedBytes(seed: Uint8Array): Uint8Array {
-  return new Uint8Array(
-    seed.buffer.slice(seed.byteOffset, seed.byteOffset + seed.byteLength)
-  );
+  return new Uint8Array(seed.buffer.slice(seed.byteOffset, seed.byteOffset + seed.byteLength));
 }
 
 async function verifyWalletLock(
   lockSecret: string,
   lockSalt: Uint8Array,
-  lockVerifier: Uint8Array
+  lockVerifier: Uint8Array,
 ) {
   const candidate = await deriveLockVerifier(lockSecret, lockSalt);
   return constantTimeEqual(candidate, lockVerifier);

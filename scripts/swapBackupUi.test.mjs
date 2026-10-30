@@ -12,15 +12,25 @@ import * as icons from 'lucide-react';
 function markup(mode) {
   const values = [mode, '', '', '', null, false, '', ''];
   const api = {};
-  const code = ts.transpileModule(readFileSync(new URL('../entrypoints/popup/SwapBackupTools.tsx', import.meta.url), 'utf8'), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
-  }).outputText;
-  runInNewContext(code, { exports: api, require: name => {
-    if (name === 'react') return { ...react, useState: () => [values.shift(), () => {}] };
-    if (name === 'react/jsx-runtime') return jsx;
-    if (name === 'lucide-react') return icons;
-    return {};
-  } });
+  const code = ts.transpileModule(
+    readFileSync(new URL('../entrypoints/popup/SwapBackupTools.tsx', import.meta.url), 'utf8'),
+    {
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        target: ts.ScriptTarget.ES2022,
+        jsx: ts.JsxEmit.ReactJSX,
+      },
+    },
+  ).outputText;
+  runInNewContext(code, {
+    exports: api,
+    require: (name) => {
+      if (name === 'react') return { ...react, useState: () => [values.shift(), () => {}] };
+      if (name === 'react/jsx-runtime') return jsx;
+      if (name === 'lucide-react') return icons;
+      return {};
+    },
+  });
   return renderToStaticMarkup(react.createElement(api.default, { onRestore() {} }));
 }
 
@@ -36,7 +46,9 @@ test('backup controls expose password confirmation and file restore without plai
 });
 
 test('backup export and restore fit mobile and desktop layouts', async () => {
-  const require = createRequire(new URL('../../leakswap-all/leakswap-private/e2e-ui/package.json', import.meta.url));
+  const require = createRequire(
+    new URL('../../leakswap-all/leakswap-private/e2e-ui/package.json', import.meta.url),
+  );
   const { chromium } = require('playwright');
   const browser = await chromium.launch({ headless: true });
   try {
@@ -45,11 +57,21 @@ test('backup export and restore fit mobile and desktop layouts', async () => {
     for (const mode of ['export', 'restore']) {
       for (const width of [360, 1100]) {
         await page.setViewportSize({ width, height: 1000 });
-        await page.setContent(`<style>${css} main { max-width: 700px; margin: auto; padding: 16px; }</style><main>${markup(mode)}</main>`);
+        await page.setContent(
+          `<style>${css} main { max-width: 700px; margin: auto; padding: 16px; }</style><main>${markup(mode)}</main>`,
+        );
         await page.locator('summary').click();
-        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-        await page.screenshot({ path: `/tmp/zebgen-swap-backup-${mode}-${width}.png`, fullPage: true });
+        assert.equal(
+          await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+          true,
+        );
+        await page.screenshot({
+          path: `/tmp/zebgen-swap-backup-${mode}-${width}.png`,
+          fullPage: true,
+        });
       }
     }
-  } finally { await browser.close(); }
+  } finally {
+    await browser.close();
+  }
 });

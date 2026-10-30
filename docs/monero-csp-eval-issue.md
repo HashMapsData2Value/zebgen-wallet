@@ -48,24 +48,28 @@ We traced this to the actual bundled code in
 1. **`GenUtils.isBrowser()`** — a utility that detects whether code is running
    in a browser:
    ```js
-   let t = "function" == typeof importScripts,
-       e = new Function("try {return this===window;}catch(e){return false;}")(),
-       r = !!e && new Function("try {return window.nav...")();
+   let t = 'function' == typeof importScripts,
+     e = new Function('try {return this===window;}catch(e){return false;}')(),
+     r = !!e && new Function('try {return window.nav...')();
    ```
 2. **A bundler-injected "get global object" polyfill** (classic
    webpack/rollup helper for environments without `globalThis`):
    ```js
-   r.g = function() {
-     if ("object" == typeof globalThis) return globalThis;
-     try { return this || new Function("return this")() }
-     catch (t) { if ("object" == typeof window) return window }
-   }()
+   r.g = (function () {
+     if ('object' == typeof globalThis) return globalThis;
+     try {
+       return this || new Function('return this')();
+     } catch (t) {
+       if ('object' == typeof window) return window;
+     }
+   })();
    ```
 
 **Neither of these actually needs dynamic code evaluation.** They are legacy
 environment-sniffing shims from a bundler/build targeting older JS environments
 that predate `globalThis` (standardized in ES2020). Modern equivalents exist
 that need no string evaluation at all:
+
 - `typeof window !== 'undefined'` instead of the `isBrowser()` `new Function` calls.
 - `globalThis` directly instead of the `new Function("return this")()` fallback.
 
@@ -85,13 +89,13 @@ WASM** — it's an artifact of how `monero-ts`'s dependency bundle was built.
    (broadens what the background service worker is allowed to execute) — not
    something to do without explicit sign-off.
 3. **Manual user workaround** (see below) — don't fix the code at all right
-   now; have the person doing the swap perform the actual Monero *send* in an
+   now; have the person doing the swap perform the actual Monero _send_ in an
    external wallet instead of inside zebgen.
 
 ## Manual workaround: what a user could do today
 
 Because zebgen can still fully compute keys and addresses in-browser (only
-*building/broadcasting a transaction* is blocked), a user hitting this bug
+_building/broadcasting a transaction_ is blocked), a user hitting this bug
 could route around it like this:
 
 1. In zebgen, open the account/key view and **reveal the private spend key and
@@ -104,7 +108,7 @@ could route around it like this:
    using its "restore from keys" / `generate_from_keys` import flow.
 3. **Perform the actual send (or the final sweep) from that external wallet**,
    using the address zebgen displayed as the destination/source.
-4. Continue using zebgen in-browser for everything else it *can* do purely
+4. Continue using zebgen in-browser for everything else it _can_ do purely
    client-side: generating accounts/addresses, computing the combined address
    with the counterparty, and signing/submitting the Algorand-side contract
    steps (deploy, fund, set ready, leaky claim).
