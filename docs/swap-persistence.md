@@ -198,8 +198,12 @@ maturity before selecting inputs. Decoys, current fees, and signatures are still
 prepared for the actual payment. The updated checkpoint is saved encrypted.
 Invalid chain anchors discard stale coverage and require rescanning; wallet
 identity mismatches fail closed. This does not add unattended scanning while
-locked. The pinned scanner 0.8.0 exposes
+locked. The pinned scanner 0.8.1 exposes
 `transactionCheckpointVersion() === 2`, enabling cached transaction preparation.
+
+Authenticated daemon requests are serialized per origin to preserve monerod's
+connection-bound Digest challenges. Transaction receipt lookups use the same
+authenticated transport as scanning and sending.
 
 The wallet's transaction adapter is preparation-only and rejects direct relay
 requests before scanning or signing. Checkpoint persistence must succeed before

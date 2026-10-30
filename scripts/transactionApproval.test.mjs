@@ -155,6 +155,35 @@ test('XMR receipts require actual block inclusion and surface RPC errors', async
   await assert.rejects(api.readTransactionStatus(request), /HTTP 503/);
 });
 
+test('authenticated XMR receipts use the shared Digest transport, never Basic fetch', async () => {
+  const hash = 'b'.repeat(64);
+  const calls = [];
+  const api = load(
+    'transactionStatus',
+    {
+      '../monero/moneroDaemon': { initializeMoneroWasm: async () => calls.push('initialize') },
+      'zebgen-monero-wasm': {
+        transactionStatus: async (...args) => {
+          calls.push(args);
+          return JSON.stringify({ status: 'OK', txs: [{ tx_hash: hash, in_pool: true }] });
+        },
+      },
+    },
+    {
+      fetch: () => {
+        throw new Error('must not bypass Digest transport');
+      },
+    },
+  );
+  const request = {
+    chain: 'monero',
+    hash,
+    config: { daemon: { uri: 'http://localhost:18081', username: 'user', password: 'secret' } },
+  };
+  assert.equal((await api.readTransactionStatus(request)).state, 'pool');
+  assert.deepEqual(calls, ['initialize', ['http://localhost:18081', 'user', 'secret', hash]]);
+});
+
 test('Monero journals before relay, survives navigation, and consumes uncertain attempts', async () => {
   for (const scenario of [
     'success',
