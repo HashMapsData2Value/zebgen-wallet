@@ -4,9 +4,15 @@ import { cp, mkdir, mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
+import ts from 'typescript';
 
 test('Workers uploads the built site including generated logo assets', async () => {
-  const config = JSON.parse(await readFile(new URL('../wrangler.jsonc', import.meta.url), 'utf8'));
+  const parsed = ts.parseConfigFileTextToJson(
+    'wrangler.jsonc',
+    await readFile(new URL('../wrangler.jsonc', import.meta.url), 'utf8'),
+  );
+  assert.equal(parsed.error, undefined);
+  const config = parsed.config;
   assert.equal(config.assets.directory, './site-dist');
   assert.equal(config.name, 'zebgen');
 });
@@ -19,18 +25,35 @@ test('website builds from source and brand assets without installed packages', a
       await mkdir(path.join(directory, folder), { recursive: true });
     }
     for (const file of [
-      'scripts/build-site.mjs', 'site/index.html', 'site/style.css', 'site/wallet-theme.css', 'site/main.js',
-      'assets/algorand_logo.png', 'assets/monero_logo.png', 'public/icon/128.png',
-      'assets/brand/zebgen-mark-violet-128.png', 'assets/brand/zebgen-mark-luminous.svg',
-      'assets/brand/zebgen-mark-violet.svg', 'assets/brand/zebgen-mark-violet-32.png',
+      'scripts/build-site.mjs',
+      'site/index.html',
+      'site/style.css',
+      'site/wallet-theme.css',
+      'site/main.js',
+      'assets/algorand_logo.png',
+      'assets/monero_logo.png',
+      'public/icon/128.png',
+      'assets/brand/zebgen-mark-violet-128.png',
+      'assets/brand/zebgen-mark-luminous.svg',
+      'assets/brand/zebgen-mark-violet.svg',
+      'assets/brand/zebgen-mark-violet-32.png',
       'site/assets/wallet-preview.png',
-      'site/assets/chrome.svg', 'site/assets/firefox.svg',
+      'site/assets/chrome.svg',
+      'site/assets/firefox.svg',
     ]) {
       await cp(new URL(file, root), path.join(directory, file));
     }
     execFileSync(process.execPath, ['scripts/build-site.mjs'], { cwd: directory });
     const output = path.join(directory, 'site-dist');
-    assert.deepEqual((await readdir(output)).sort(), ['assets', 'favicon-32.png', 'favicon.svg', 'index.html', 'main.js', 'style.css', 'wallet-theme.css']);
+    assert.deepEqual((await readdir(output)).sort(), [
+      'assets',
+      'favicon-32.png',
+      'favicon.svg',
+      'index.html',
+      'main.js',
+      'style.css',
+      'wallet-theme.css',
+    ]);
     const theme = await readFile(path.join(output, 'wallet-theme.css'), 'utf8');
     assert.ok(theme.includes('background: #04020b'));
     assert.ok(theme.includes("font-family: 'Space Grotesk'"));
@@ -45,11 +68,24 @@ test('website builds from source and brand assets without installed packages', a
     assert.ok(html.includes('https://github.com/HashMapsData2Value/zebgen-wallet/releases'));
     assert.ok(html.includes('https://leakswap.com'));
     assert.ok(html.includes('Nodes are graciously hosted by'));
-    assert.ok(html.includes('href="https://nodely.io" target="_blank" rel="noopener noreferrer">Nodely.io</a>, but you are free to use your own.'));
-    for (const faucet of ['https://lora.algokit.io/testnet/fund', 'https://faucet-stagenet.xmr.nodely.dev/']) {
-      assert.ok(html.includes(`href="${faucet}" target="_blank" rel="noopener noreferrer"`));
+    assert.match(
+      html,
+      /href="https:\/\/nodely\.io"\s+target="_blank"\s+rel="noopener noreferrer"\s*>\s*Nodely\.io\s*<\/a\s*>\s*,\s*but you are free to use your own\./,
+    );
+    for (const faucet of [
+      'https://lora.algokit.io/testnet/fund',
+      'https://faucet-stagenet.xmr.nodely.dev/',
+    ]) {
+      assert.ok(
+        html
+          .replace(/\s+/g, ' ')
+          .includes(`href="${faucet}" target="_blank" rel="noopener noreferrer"`),
+      );
     }
-    assert.deepEqual(await readFile(path.join(output, 'assets/zebgen.png')), await readFile(new URL('assets/brand/zebgen-mark-violet-128.png', root)));
+    assert.deepEqual(
+      await readFile(path.join(output, 'assets/zebgen.png')),
+      await readFile(new URL('assets/brand/zebgen-mark-violet-128.png', root)),
+    );
     assert.ok(!/ZebGen|Zebgen/.test(html));
     assert.ok(theme.includes('zebgen-luminescence'));
     assert.ok(theme.includes("font-family: 'Jersey 20'"));

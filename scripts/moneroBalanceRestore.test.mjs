@@ -7,6 +7,22 @@ import * as react from 'react';
 import * as jsx from 'react/jsx-runtime';
 import * as scanHeight from '../lib/monero/scanHeight.ts';
 
+const cache = {};
+runInNewContext(
+  ts.transpileModule(
+    readFileSync(new URL('../lib/wallet/moneroBalanceCache.ts', import.meta.url), 'utf8'),
+    { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } },
+  ).outputText,
+  {
+    exports: cache,
+    URL,
+    require: (name) => {
+      if (name === 'wxt/browser' || name === './seedVault') return {};
+      throw new Error(`Unexpected cache dependency: ${name}`);
+    },
+  },
+);
+
 const compiled = ts.transpileModule(
   readFileSync(new URL('../entrypoints/popup/MoneroBalance.tsx', import.meta.url), 'utf8'),
   {
@@ -22,6 +38,7 @@ const checkpoint = {
   balanceAtomic: '4200000000000',
   scannedHeight: 17563,
   scannedAt: now - 60_000,
+  spans: [{ start: 17500, end: 17563 }],
 };
 const plain = (value) => JSON.parse(JSON.stringify(value));
 
@@ -76,8 +93,7 @@ function harness(options = {}) {
     config: { network: 'stagenet', daemon: { uri: 'https://daemon.invalid' } },
     ...options.props,
   };
-  const keyFor = (network, daemon, address, height) =>
-    JSON.stringify([network, daemon, address, height]);
+  const keyFor = cache.coverageCheckpointKey;
   const api = {};
   runInNewContext(compiled, {
     exports: api,
@@ -148,7 +164,7 @@ function harness(options = {}) {
         };
       if (name.endsWith('/moneroBalanceCache'))
         return {
-          balanceCheckpointKey: keyFor,
+          ...cache,
           async loadBalanceCheckpoint(...args) {
             loads.push(args);
             return options.load
@@ -160,6 +176,8 @@ function harness(options = {}) {
             saves.push(args);
           },
         };
+      if (name.endsWith('/moneroScanCheckpoint'))
+        return { loadScanCheckpoint: async () => undefined };
       if (name.endsWith('/hostPermissions'))
         return {
           async ensureHostPermissions(...args) {
@@ -183,8 +201,9 @@ function harness(options = {}) {
               scannedHeight: tip,
               scannedAt: now,
               resumable: true,
+              spans: [{ start: Number(props.restoreHeight), end: tip }],
             };
-            return { ok: true, balanceAtomic: '7300000000000' };
+            return { ok: true, balanceAtomic: '7300000000000', spans: savedCheckpoint.spans };
           },
         };
       throw new Error(`Unexpected component dependency: ${name}`);
@@ -263,9 +282,9 @@ test('mount restores encrypted-vault checkpoint balance, verification time and h
   view.render();
   await view.settle();
   assert.deepEqual(view.loads, [[view.key(), 'fixture-only-unlock']]);
-  assert.equal(view.amount(), '4.200000000000 XMR');
+  assert.equal(view.amount(), 'Spendable 4.200000000000 XMR');
   assert.deepEqual(view.statuses(), [
-    `Last verified unlocked balance · block 17563 · ${new Date(checkpoint.scannedAt).toLocaleString()}`,
+    `Last verified balance · block 17562 · ${new Date(checkpoint.scannedAt).toLocaleString()}`,
   ]);
   assert.equal(view.probes.length, 1);
   await view.poll();
@@ -296,9 +315,9 @@ for (const trigger of ['mount', 'poll']) {
     assert.equal(view.scans[0].control.signal.aborted, false);
     assert.equal(view.permissions.length, 0, 'automatic scan must use scan(false)');
     assert.equal(view.saves.length, 0, 'the scan host owns durable checkpoint writes');
-    assert.equal(view.amount(), '7.300000000000 XMR');
+    assert.equal(view.amount(), 'Spendable 7.300000000000 XMR');
     assert.deepEqual(view.statuses(), [
-      `Last verified unlocked balance · block 17564 · ${new Date(now).toLocaleString()}`,
+      `Last verified balance · block 17563 · ${new Date(now).toLocaleString()}`,
     ]);
     await view.poll();
     assert.equal(view.scans.length, 1, 'saved tip must suppress redundant scans');
@@ -314,26 +333,26 @@ test('no cache and exactly 5000 blocks of history automatically scans and saves'
   assert.equal(view.scans[0].request.restoreHeight, 17500);
   assert.equal(view.permissions.length, 0);
   assert.equal(view.saves.length, 0);
-  assert.equal(view.amount(), '7.300000000000 XMR');
+  assert.equal(view.amount(), 'Spendable 7.300000000000 XMR');
   assert.equal(view.alerts().length, 0);
 });
 
 for (const cached of [true, false]) {
   test(`more than 5000 history blocks never auto-downloads on mount (${cached ? 'cached total retained' : 'no cache'})`, async (context) => {
-    const view = harness({ checkpoint: cached ? checkpoint : null, tip: 22501 });
+    const view = harness({ checkpoint: cached ? checkpoint : null, tip: cached ? 22564 : 22501 });
     context.after(() => view.unmount());
     view.render();
     await view.settle();
     assert.equal(view.scans.length, 0);
     assert.equal(view.permissions.length, 0);
     assert.equal(view.saves.length, 0);
-    assert.equal(view.amount(), cached ? '4.200000000000 XMR' : 'Balance not checked');
+    assert.equal(view.amount(), cached ? 'Spendable 4.200000000000 XMR' : 'Balance not checked');
     assert.ok(view.statuses().includes('Scan required. Refresh to allow the history download.'));
     if (cached) {
-      assert.ok(view.statuses()[0].includes('block 17563'));
+      assert.ok(view.statuses()[0].includes('block 17562'));
       await view.poll();
       assert.equal(view.scans.length, 0);
-      assert.equal(view.amount(), '4.200000000000 XMR');
+      assert.equal(view.amount(), 'Spendable 4.200000000000 XMR');
       assert.ok(
         view
           .statuses()
@@ -350,11 +369,11 @@ test('polling a newer tip beyond 5000 history blocks retains cached total and re
   context.after(() => view.unmount());
   view.render();
   await view.settle();
-  view.setTip(22501);
+  view.setTip(22564);
   await view.poll();
   assert.equal(view.scans.length, 0);
   assert.equal(view.saves.length, 0);
-  assert.equal(view.amount(), '4.200000000000 XMR');
+  assert.equal(view.amount(), 'Spendable 4.200000000000 XMR');
   assert.ok(
     view
       .statuses()
@@ -408,11 +427,12 @@ for (const change of ['wallet', 'unlock secret', 'checkpoint key']) {
     if (change === 'wallet') view.render({ address: 'other-fixture-address', walletId: 2 });
     if (change === 'unlock secret') view.render({ lockSecret: 'other-fixture-unlock' });
     if (change === 'checkpoint key') {
-      findAll(
-        view.tree,
-        (element) => element.props.id === 'balance-restore-height',
-      )[0].props.onChange({ target: { value: '17501' } });
-      view.render();
+      view.render({
+        config: {
+          ...view.scans[0].request.config,
+          daemon: { uri: 'https://other-daemon.invalid' },
+        },
+      });
     }
     assert.equal(prior.control.signal.aborted, true);
     assert.equal(prior.control.signal.reason, 'detach');
@@ -431,12 +451,12 @@ for (const change of ['wallet', 'unlock secret', 'checkpoint key']) {
     await view.settle();
     assert.equal(view.scans.length, 1);
     assert.equal(view.saves.length, 0);
-    assert.equal(view.amount(), '4.200000000000 XMR');
+    assert.equal(view.amount(), 'Spendable 4.200000000000 XMR');
     assert.equal(view.tree.props['aria-busy'], false);
     assert.equal(findAll(view.tree, (element) => element.type === 'scan-activity').length, 0);
     assert.deepEqual(view.alerts(), []);
     assert.equal(view.errors.length, 0);
-    assert.ok(view.statuses()[0].includes('block 17563'));
+    assert.ok(view.statuses()[0].includes('block 17562'));
   });
 }
 
@@ -450,9 +470,9 @@ test('failed automatic scan preserves last verified balance, height and time and
   await view.settle();
   assert.equal(view.scans.length, 1);
   assert.equal(view.saves.length, 0);
-  assert.equal(view.amount(), '4.200000000000 XMR');
+  assert.equal(view.amount(), 'Spendable 4.200000000000 XMR');
   assert.deepEqual(view.statuses(), [
-    `Last verified unlocked balance · block 17563 · ${new Date(checkpoint.scannedAt).toLocaleString()}`,
+    `Last verified balance · block 17562 · ${new Date(checkpoint.scannedAt).toLocaleString()}`,
   ]);
   assert.deepEqual(view.alerts(), ['fixture scan failure']);
   assert.equal(view.tree.props['aria-busy'], false);

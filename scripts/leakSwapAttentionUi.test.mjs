@@ -10,6 +10,7 @@ import { createRequire } from 'node:module';
 import * as status from '../lib/wallet/swapStatus.ts';
 import { formatAtomic } from '../lib/wallet/formatAtomic.ts';
 import * as icons from 'lucide-react';
+import { formatRoundDeadline } from 'leakswap-utils/dist/swapTiming.js';
 
 const compiled = ts.transpileModule(
   readFileSync(new URL('../entrypoints/popup/LeakSwapPanel.tsx', import.meta.url), 'utf8'),
@@ -32,6 +33,8 @@ function render(swaps, now = 9000, { loading = false, error = null, shares = [],
         return { ...react, useState: () => [values.shift(), () => {}], useEffect: () => {} };
       if (name === 'react/jsx-runtime') return jsx;
       if (name === './SwapRecoveryTools') return { default: () => null };
+      if (name === './SwapBackupTools') return { default: () => null };
+      if (name === 'leakswap-utils/dist/swapTiming.js') return { formatRoundDeadline };
       if (name.endsWith('/swapStatus')) return status;
       if (name.endsWith('/formatAtomic')) return { formatAtomic };
       if (name.endsWith('.png'))
@@ -56,7 +59,8 @@ const swap = (appId, role, state, checkedAt = 9000) => ({
   funding: 'present',
   escrowAtomic: '5000000',
   moneroNetwork: 'stagenet',
-  chainTime: 9000,
+  deadlineUnit: 'round',
+  chainRound: 9000,
 });
 
 test('wallet lists urgent swaps first with one New Swap action and no developer tools', () => {
@@ -107,21 +111,31 @@ test('empty, loading and failure states do not invent saved swaps', () => {
 
 test('swap rows show live role-specific claim and punish-refund states', () => {
   assert.match(
-    render([{ ...swap('1', 'xin', 'ready'), chainTime: 9000 }]),
+    render([{ ...swap('1', 'xin', 'ready'), chainRound: 9000 }]),
     /Leaky claim available/,
   );
   assert.match(
-    render([{ ...swap('1', 'ali', 'ready'), chainTime: 9000 }]),
+    render([{ ...swap('1', 'ali', 'ready'), chainRound: 9000 }]),
     /Waiting for Xin to claim/,
   );
   assert.match(
-    render([{ ...swap('1', 'ali', 'ready'), chainTime: 17200 }]),
+    render([{ ...swap('1', 'ali', 'ready'), chainRound: 17200 }]),
     /Punish refund available/,
   );
   assert.match(
     render([{ ...swap('1', 'xin', 'awaiting'), funding: 'empty' }]),
     /Waiting for ALGO funding/,
   );
+});
+
+test('swap rows use node rounds, not wall-clock time, and fail closed without a round', () => {
+  const ready = swap('1', 'xin', 'awaiting');
+  assert.match(render([{ ...ready, chainRound: ready.t0 }]), /Waiting for deposit verification/);
+  assert.match(render([{ ...ready, chainRound: ready.t0 + 1 }]), /Leaky claim available/);
+  assert.match(render([{ ...ready, chainRound: ready.t1 }]), /Claim window closed/);
+  const unverified = render([{ ...ready, chainRound: undefined }]);
+  assert.match(unverified, /Chain round unavailable/);
+  assert.doesNotMatch(unverified, /Leaky claim available|Punish refund available/);
 });
 
 test('dedicated share inventory presents bindings and recovery, not receive or send wallets', () => {

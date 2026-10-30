@@ -93,7 +93,7 @@ test(
   'real Firefox background can handshake with the built scan page, display progress, and receive Stop',
   { timeout: 90000 },
   async () => {
-    const source = resolve(process.env.ZEBGEN_TEST_EXTENSION ?? '.output-firefox-test/firefox-mv2');
+    const source = resolve(process.env.ZEBGEN_TEST_FIREFOX_EXTENSION ?? '.output/firefox-mv2');
     const manifest = JSON.parse(await readFile(join(source, 'manifest.json'), 'utf8'));
     assert.equal(manifest.manifest_version, 2);
     const directory = await mkdtemp(join(tmpdir(), 'zebgen-firefox-scan-'));
