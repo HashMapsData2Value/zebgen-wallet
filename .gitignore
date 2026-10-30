@@ -14,6 +14,7 @@ node_modules
 .output-scan-fallback/
 .output-scan-validation/
 .output-firefox-test/
+.output-chrome-test/
 .output-beta-validation/
 site-dist/
 stats.html

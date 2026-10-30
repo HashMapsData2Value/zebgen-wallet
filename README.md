@@ -124,6 +124,18 @@ enables previews and serves `site-dist` for both deployment types.
 
 ### Local development and browser tests
 
+`npm run test:chrome` and `npm run test:firefox` build into isolated test
+directories and exercise the built scan page with a test background in a real
+browser. They cover readiness, the background handshake, displayed progress,
+Stop, and completion, not a live Monero scan or wallet service-worker restart.
+Chrome uses an MV3 service worker; Firefox uses an MV2 background page.
+Both run on pull requests and before publishing a release.
+
+For Chrome, install the matching browser once with
+`npx playwright install chromium` (Linux CI also uses `--with-deps`).
+For Firefox, install Firefox or set `FIREFOX_BINARY` to its executable.
+Tests use disposable profiles and do not touch an installed wallet.
+
 Install the npm dependencies before compiling or building:
 
 ```sh

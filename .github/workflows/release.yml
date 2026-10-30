@@ -38,6 +38,10 @@ jobs:
         run: node --experimental-transform-types --no-warnings --test scripts/scanApprovalProgress.test.mjs scripts/swapAffordability.test.mjs
       - name: Check Chrome and Firefox scan sender contracts
         run: node --experimental-transform-types --no-warnings --test scripts/scanHostStatus.test.mjs scripts/scanTabSecurity.test.mjs scripts/balanceScanBridge.test.mjs
+      - name: Install Chromium runtime
+        run: npx playwright install --with-deps chromium
+      - name: Test real Chrome scan runtime
+        run: npm run test:chrome
       - uses: browser-actions/setup-firefox@v1
         id: firefox
       - name: Test real Firefox scan runtime
